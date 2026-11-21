@@ -9,7 +9,7 @@ import { solids } from './world/geometry.js';
 import { updateProps } from './world/props.js';
 import { buildRegion1 } from './world/region1.js';
 import { hero, initHero, updateHero, updateHeroVisuals } from './entities/hero.js';
-import { enemies, bossRef, updateEnemies } from './entities/enemies/registry.js';
+import { enemies, bossRef, updateEnemies, updateEnemySprites } from './entities/enemies/registry.js';
 import { updateProjectiles, spitMat } from './entities/enemies/spitter.js';
 import { updateEmbers, updateFlasks, emberMat, flaskMats } from './systems/pickups.js';
 import { updateBoonFx, updateAltars, runeMats } from './systems/boons.js';
@@ -66,6 +66,7 @@ function frame(now) {
   updateProps(now, raw);
   updateAltars(now, raw);
   updateHeroVisuals(now, raw);
+  updateEnemySprites();
   updateCamera(raw);
   updateNums(raw);
   updateHUD(raw);

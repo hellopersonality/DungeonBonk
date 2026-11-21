@@ -3,33 +3,16 @@
 import { lerp, turnTo } from '../../core/util.js';
 import { S } from '../../core/state.js';
 import { SKIT } from '../../data/tuning.js';
-import { boxM, lineGeo, los } from '../../world/geometry.js';
+import { lineGeo, los } from '../../world/geometry.js';
 import { hero } from '../hero.js';
 import { hurtHero } from '../../systems/combat.js';
 import { enemyBase, resetEnemy } from './registry.js';
 import { idleCommon, stepForward, applyKnockback } from './common.js';
+import { stubRig, attachSprite } from './sprites.js';
 
 export function makeSkitter(x, z, f) {
   const e = enemyBase('skitter', x, z, f, SKIT);
-  const M = e.M, shell = M(0x7a2a1c), plate = M(0x9a3a24), plate2 = M(0xb04a2a), dark = M(0x2a1410), leg = M(0x24140f);
-  e.body = new THREE.Group(); e.model.add(e.body);
-  const B = e.body;
-  boxM(0.75, 0.28, 0.95, shell, 0, 0.4, 0, B);
-  boxM(0.6, 0.1, 0.72, plate, 0, 0.58, -0.04, B);
-  boxM(0.4, 0.08, 0.45, plate2, 0, 0.66, -0.1, B);
-  boxM(0.42, 0.24, 0.34, M(0x5a2018), 0, 0.42, 0.58, B);
-  boxM(0.06, 0.06, 0.34, dark, 0.12, 0.36, 0.86, B).rotation.y = -0.4;
-  boxM(0.06, 0.06, 0.34, dark, -0.12, 0.36, 0.86, B).rotation.y = 0.4;
-  boxM(0.1, 0.1, 0.55, dark, 0, 0.62, -0.62, B).rotation.x = 0.7; // tail spike
-  e.eyeMat = new THREE.MeshBasicMaterial({ color: 0x501a10 });
-  [[0.1, 0.5], [-0.1, 0.5], [0.06, 0.46], [-0.06, 0.46]].forEach(([x, y]) => boxM(0.05, 0.04, 0.02, e.eyeMat, x, y, 0.76, B));
-  e.legs = [];
-  for (let i = 0; i < 3; i++) for (const s of [-1, 1]) {
-    const p = new THREE.Group(); p.position.set(s * 0.36, 0.4, 0.3 - i * 0.3); B.add(p);
-    boxM(0.55, 0.05, 0.05, leg, s * 0.27, -0.1, 0, p);
-    boxM(0.05, 0.3, 0.05, leg, s * 0.52, -0.28, 0, p);
-    p.rotation.z = s * -0.4; e.legs.push(p);
-  }
+  stubRig(e); attachSprite(e, 'skitter');
   e.lO = e.T(lineGeo(0.75), 0xd04030, 0.04);
   e.lF = e.T(lineGeo(0.75), 0xff4030, 0.05);
   resetEnemy(e);

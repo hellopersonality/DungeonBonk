@@ -7,11 +7,12 @@ import { sectorGeo } from '../../world/geometry.js';
 import { hero } from '../hero.js';
 import { hurtHero } from '../../systems/combat.js';
 import { enemyBase, resetEnemy } from './registry.js';
-import { buildHuskBody, idleCommon, stepForward, inCone, applyKnockback } from './common.js';
+import { idleCommon, stepForward, inCone, applyKnockback } from './common.js';
+import { stubRig, attachSprite } from './sprites.js';
 
 export function makeHusk(x, z, f) {
   const e = enemyBase('husk', x, z, f, HUSK);
-  buildHuskBody(e, { skin: 0x7d8a6a, rag: 0x3a3226, head: 0x66704f, darkSkin: 0x3c4632 });
+  stubRig(e); attachSprite(e, 'husk');
   e.cO = e.T(sectorGeo(0.4, HUSK.REACH, HUSK.ARC), 0xd04030, 0.04);
   e.cF = e.T(sectorGeo(0.01, 1, HUSK.ARC), 0xff4030, 0.05);
   resetEnemy(e);

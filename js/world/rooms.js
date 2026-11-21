@@ -4,7 +4,7 @@
 // Doors are given per side as [from, to] ranges along that side:
 //   n = +z side, s = -z side, e = +x side, w = -x side.
 // FULL means the whole side is open (used by corridors that join another room).
-import { makeBox, WALL_H } from './geometry.js';
+import { makeBox, ceilings, WALL_H } from './geometry.js';
 import { scene } from '../render/renderer.js';
 
 export const FULL = [[-1e9, 1e9]];
@@ -52,7 +52,7 @@ export function room(name, x0, x1, z0, z1, doors, theme) {
   for (const [a, b] of segs(z0, z1, doors.w || [])) wall(x0 - T, x0, a, b);
   for (const [a, b] of segs(z0, z1, doors.e || [])) wall(x1, x1 + T, a, b);
   flatPlane(x0, x1, z0, z1, 0, theme.floor, true);
-  flatPlane(x0, x1, z0, z1, WALL_H, theme.ceil, false);
+  ceilings.push(flatPlane(x0, x1, z0, z1, WALL_H, theme.ceil, false));
   rooms[name] = { name, x0, x1, z0, z1, theme };
   return rooms[name];
 }

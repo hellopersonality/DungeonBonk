@@ -76,8 +76,8 @@ const _wp = new V3();
 
 export function spawnWave() {
   const m = new THREE.Mesh(waveGeo, fxMat(0xffb060, 0.7));
-  m.position.set(hero.pos.x, 0.9, hero.pos.z); m.rotation.y = S.yaw; scene.add(m);
-  waves.push({ m, dx: Math.sin(S.yaw), dz: Math.cos(S.yaw), t: 0, hit: new Set() });
+  m.position.set(hero.pos.x, 0.9, hero.pos.z); m.rotation.y = hero.facing; scene.add(m);
+  waves.push({ m, dx: Math.sin(hero.facing), dz: Math.cos(hero.facing), t: 0, hit: new Set() });
   sfx.wave();
 }
 export function spawnTrail() {

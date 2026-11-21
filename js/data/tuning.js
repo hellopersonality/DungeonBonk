@@ -3,6 +3,13 @@ export const HERO = {
   speed: 5.2, radius: 0.4, maxHp: 100,
   staminaRegen: 42, staminaDelay: 0.65,
 };
+/** Orbit camera: distance range (zoom) and the pitch it blends between. */
+export const CAM = {
+  zoom: 7.5, zoomMin: 4.5, zoomMax: 11,   // world units from the hero
+  pitchNear: 0.55, pitchFar: 1.15,        // radians looking down, at min / max zoom
+  fov: 50, targetY: 1.0,                  // look-at height above the hero's feet
+  rotateSpeed: 3.0, zoomSpeed: 5.0,       // stick / arrow-key rates
+};
 export const DASH = { time: 0.34, speed: 11.5, cost: 28, iframes: 0.3 };
 export const FLASK = { max: 3, heal: 40, drinkTime: 0.75, healAt: 0.5, dropChance: 0.12 };
 

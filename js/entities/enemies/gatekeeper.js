@@ -11,7 +11,8 @@ import { hero } from '../hero.js';
 import { hurtHero } from '../../systems/combat.js';
 import { showMsg } from '../../ui/messages.js';
 import { enemyBase, resetEnemy, bossRef } from './registry.js';
-import { buildHuskBody, idleCommon, stepForward, inCone } from './common.js';
+import { idleCommon, stepForward, inCone } from './common.js';
+import { stubRig, attachSprite } from './sprites.js';
 
 export function makeGatekeeper(x, z, f, arenaRoom) {
   const e = enemyBase('boss', x, z, f, GK);
@@ -19,8 +20,8 @@ export function makeGatekeeper(x, z, f, arenaRoom) {
   e.bossId = 'gatekeeper';
   e.permaDead = !!save.defeated.gatekeeper; // bosses never come back once beaten
   e.arenaRoom = arenaRoom;
-  buildHuskBody(e, { skin: 0x8a8070, rag: 0x3a2a2a, head: 0x6a6a70, darkSkin: 0x4a4038, armored: true });
-  e.baseScale = 1.7; e.model.scale.setScalar(1.7);
+  stubRig(e); attachSprite(e, 'gatekeeper'); // drawn at 1.7x on its own canvas, so no model scale
+  e.baseScale = 1;
   e.cO = e.T(sectorGeo(0.6, GK.SLAM_R, GK.SLAM_A), 0xd04030, 0.04);
   e.cF = e.T(sectorGeo(0.01, 1, GK.SLAM_A), 0xff4030, 0.05);
   e.rO = e.T(circleGeo(GK.SWEEP_R - 0.12, GK.SWEEP_R), 0xd04030, 0.04);

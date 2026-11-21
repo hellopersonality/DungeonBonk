@@ -1,10 +1,13 @@
 // Shared runtime state. Modules read and write fields on `S` instead of exporting
 // their own mutable variables, so there is one obvious place to look for game flags.
+import { CAM } from '../data/tuning.js';
+
 export const S = {
   started: false,   // title screen dismissed
   paused: false,    // any menu is open (pause, crystal, forge, altar)
-  yaw: 0,           // camera / hero facing (radians)
-  pitch: 0.22,      // camera pitch (positive looks down)
+  yaw: 0,           // camera orbit angle around the hero (radians)
+  zoom: CAM.zoom,   // camera distance from the hero (capped by CAM.zoomMin/zoomMax)
+  pitch: 0.8,       // camera pitch (positive looks down); derived from zoom each frame
   clock: 0,         // game time in seconds (stops while paused)
   hitstop: 0,       // freeze-frame timer on hits
   shake: 0,         // camera shake amount

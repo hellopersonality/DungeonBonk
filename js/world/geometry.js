@@ -12,6 +12,8 @@ import { scene } from '../render/renderer.js';
 export const WALL_H = 4.2;
 export const solids = [];
 export const fadeables = [];
+/** Ceiling planes and beams: hidden while the camera is above ceiling height (render/camera.js). */
+export const ceilings = [];
 
 /** World-space planar UVs so textures line up across neighbouring boxes. */
 function planarUV(geo, ox, oy, oz) {

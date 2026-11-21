@@ -3,6 +3,7 @@
 import { clamp } from '../core/util.js';
 import { S } from '../core/state.js';
 import { settings } from '../core/save.js';
+import { CAM } from '../data/tuning.js';
 import { tryDodge, tryDrink } from '../entities/hero.js';
 import { tryInteract } from '../systems/interact.js';
 import { menuOpen, openPause, closeMenu, moveMenu, adjustMenu, activateMenu } from '../ui/menus.js';
@@ -70,8 +71,9 @@ export function pollPad(dt, onStart) {
   } else {
     pad.x = lx; pad.y = ly;
     const sens = settings.padSens;
-    S.yaw -= rx * Math.abs(rx) * 3.0 * dt * sens;
-    S.pitch = clamp(S.pitch + ry * Math.abs(ry) * 1.8 * dt * sens * (settings.invertY ? -1 : 1), -0.35, 0.95);
+    // right stick: left/right orbits the camera, up/down zooms (up = closer; capped)
+    S.yaw -= rx * Math.abs(rx) * CAM.rotateSpeed * dt * sens;
+    S.zoom = clamp(S.zoom + ry * Math.abs(ry) * CAM.zoomSpeed * dt * sens * (settings.invertY ? -1 : 1), CAM.zoomMin, CAM.zoomMax);
     if (pressed(BTN.A) || pressed(BTN.RB) || pressed(BTN.RT)) tryDodge();
     if (pressed(BTN.X)) tryInteract();
     if (pressed(BTN.Y)) tryDrink();

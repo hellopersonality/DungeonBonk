@@ -4,7 +4,7 @@
 // north: PI, south: 0).
 import { scene } from '../render/renderer.js';
 import { MAT, TEX } from '../render/textures.js';
-import { boxM, cylM, makeBox, addSolid, solids, WALL_H } from './geometry.js';
+import { boxM, cylM, makeBox, addSolid, solids, ceilings, WALL_H } from './geometry.js';
 import { rand } from '../core/util.js';
 
 const torches = [], crystals = [], gates = [], waters = [], spinners = [];
@@ -191,8 +191,8 @@ export function roots(x, z, n = 4) {
   }
 }
 export function ceilingBeams(x0, x1, z0, z1, axis = 'x', every = 3) {
-  if (axis === 'x') for (let z = z0 + every / 2; z < z1; z += every) makeBox(x0, x1, WALL_H - 0.3, WALL_H, z - 0.15, z + 0.15, MAT.darkWood, false);
-  else for (let x = x0 + every / 2; x < x1; x += every) makeBox(x - 0.15, x + 0.15, WALL_H - 0.3, WALL_H, z0, z1, MAT.darkWood, false);
+  if (axis === 'x') for (let z = z0 + every / 2; z < z1; z += every) ceilings.push(makeBox(x0, x1, WALL_H - 0.3, WALL_H, z - 0.15, z + 0.15, MAT.darkWood, false).m);
+  else for (let x = x0 + every / 2; x < x1; x += every) ceilings.push(makeBox(x - 0.15, x + 0.15, WALL_H - 0.3, WALL_H, z0, z1, MAT.darkWood, false).m);
 }
 
 // ---------- level features ----------

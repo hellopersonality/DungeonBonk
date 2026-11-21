@@ -56,7 +56,6 @@ export function respawn() {
   const sp = level.spawnFor ? level.spawnFor(progress.lastCrystal) : { x: 0, z: 0 };
   hero.pos.set(sp.x, 0, sp.z); hero.prev.copy(hero.pos);
   resetHeroPose();
-  S.pitch = 0.22;
   resetWorld(); clearEmbers(); clearBoons(); clearBoonFx();
   level.onRespawn && level.onRespawn();
 }

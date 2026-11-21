@@ -13,6 +13,7 @@ import { updateHusk } from './husk.js';
 import { updateSkitter } from './skitter.js';
 import { updateSpitter } from './spitter.js';
 import { updateBoss } from './gatekeeper.js';
+import { updateEnemySprite } from './sprites.js';
 
 export const enemies = [];
 /** The current region's boss (set by its make function). */
@@ -97,6 +98,9 @@ function separateEnemies() {
     }
   }
 }
+
+/** Repaint every enemy sprite (runs every frame, even while paused, so it follows the camera). */
+export function updateEnemySprites() { for (const e of enemies) updateEnemySprite(e); }
 
 export function updateEnemies(dt) {
   for (const e of enemies) updateEnemy(e, dt);

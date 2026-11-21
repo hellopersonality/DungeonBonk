@@ -25,7 +25,8 @@ Push this folder to a repo (or a subfolder of one), then enable Pages for the br
 | Action | Keyboard / mouse | Controller |
 |---|---|---|
 | Move | WASD | Left stick |
-| Look | Mouse (click to lock) / arrows | Right stick |
+| Turn camera | Mouse sideways (click to lock) / ← → | Right stick left/right |
+| Zoom (capped) | Mouse wheel / ↑ ↓ | Right stick up/down |
 | Dash (i-frames) | Space / Shift | A / RB / RT |
 | Interact | E | X |
 | Drink flask | Q | Y |
@@ -40,7 +41,8 @@ js/
   main.js             builds the world, runs the game loop
   core/               no game logic: math helpers, shared state (S), save/settings, synthesized audio
   data/               tuning only: hero/enemy stats, weapon upgrades, boon list
-  render/             renderer, procedural textures and themes, camera, line-of-sight shader
+  render/             renderer, procedural textures and themes, orbit camera, line-of-sight shader,
+                      billboard sprite system (sprites.js) and placeholder character art (placeholders.js)
   world/              geometry + collision, room builder, props, and region scripts (region1.js)
   entities/           hero, enemies (one module per type + shared registry/AI helpers)
   systems/            combat, pickups (embers, flasks), boons and altars, world rules (rest/save/death), interactables
@@ -63,5 +65,17 @@ js/
 
 `render/visibility.js` builds a top-down wall map from the rooms and solids. Every
 level material is patched so each pixel checks sight lines from the hero across that
-map; anything the hero can't see fades to black. The camera never zooms: a clip
-plane cuts away walls between the camera and the hero (`render/camera.js`).
+map; anything the hero can't see fades to black. The camera orbits the hero and never
+moves to dodge walls: a clip plane cuts away walls between the camera and the hero
+(`render/camera.js`).
+
+### 2.5D characters
+
+The level is 3D with pixel-art textures; the hero and every enemy are billboarded
+sprites (`render/sprites.js`). A sprite actor is an upright quad that turns to face the
+camera, flips left/right by which way the character faces on screen, and has a blob
+shadow. Frames are painted by a `draw(ctx, A)` function. Today those are procedural
+placeholders (`render/placeholders.js`); to use real art, give `createActor` a `draw` that
+blits frames from a sprite sheet. Keep sprites at 16 px per world unit so their pixels
+match the wall textures. The hero faces where they walk (`hero.facing`), independent of
+the camera. Camera tuning (zoom range, pitch, FOV) is `CAM` in `data/tuning.js`.
