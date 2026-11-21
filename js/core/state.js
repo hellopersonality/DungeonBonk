@@ -1,0 +1,27 @@
+// Shared runtime state. Modules read and write fields on `S` instead of exporting
+// their own mutable variables, so there is one obvious place to look for game flags.
+export const S = {
+  started: false,   // title screen dismissed
+  paused: false,    // any menu is open (pause, crystal, forge, altar)
+  yaw: 0,           // camera / hero facing (radians)
+  pitch: 0.22,      // camera pitch (positive looks down)
+  clock: 0,         // game time in seconds (stops while paused)
+  hitstop: 0,       // freeze-frame timer on hits
+  shake: 0,         // camera shake amount
+  healFlash: 0,     // green flash on the hero after drinking
+  isTouch: false,   // touch controls detected
+  padActive: false, // last input came from a gamepad
+  pixelMode: false, // low-res render toggle
+  muted: false,
+};
+
+/** Currently held keyboard keys, by KeyboardEvent.code. */
+export const keys = {};
+
+export function releaseKeys() {
+  for (const k in keys) keys[k] = false;
+}
+
+export function exitPointerLock() {
+  try { document.exitPointerLock && document.exitPointerLock(); } catch (_) {}
+}

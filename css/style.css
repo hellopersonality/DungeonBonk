@@ -1,0 +1,77 @@
+/* The Hollow Loop: UI styles */
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:ui-monospace,Menlo,Consolas,monospace;color:#e8dcc0;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block}
+#hud{position:fixed;left:16px;top:14px;pointer-events:none;z-index:2}
+.bar{width:220px;height:10px;background:#1a1410;border:2px solid #3a2e22;margin-bottom:6px;position:relative}
+.bar>i{position:absolute;left:0;top:0;bottom:0;display:block;transition:width .08s}
+#hp>i{background:#b8372e}
+#st>i{background:#c9a94a}
+#emb{font-size:13px;margin-top:4px;text-shadow:0 1px 0 #000}
+#emb b{color:#ffb050}
+#flasks{font-size:13px;margin-top:3px;text-shadow:0 1px 0 #000;letter-spacing:2px}
+#flasks .f{color:#e04a3a}#flasks .e{color:#3a2a22}
+#wlvl{font-size:12px;margin-top:3px;color:#c9b890;text-shadow:0 1px 0 #000}
+#forge{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,3,6,.72);z-index:6}
+#forge .panel{width:min(440px,90vw);background:#14100c;border:2px solid #7a5c34;padding:20px 22px;box-shadow:0 10px 40px #000}
+#forge h3{margin:0 0 4px;font-size:18px;letter-spacing:5px;color:#e8c070}
+#forge .sub{font-size:12px;color:#8a7a60;margin-bottom:14px}
+#forge table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 12px}
+#forge td{padding:4px 0;border-bottom:1px solid #2a2018}
+#forge td.v{text-align:right;color:#e8dcc0}
+#forge td.n{text-align:right;color:#7ee07a;width:90px}
+#forge .next{font-size:13px;line-height:1.6;margin-bottom:6px}
+#forge .next b{color:#e8c070}
+#forge .btns{display:flex;gap:10px;margin-top:14px}
+#forge button{flex:1;font:inherit;font-size:14px;padding:10px;background:#2a2018;color:#e8dcc0;border:2px solid #7a5c34;cursor:pointer;letter-spacing:2px}
+#forge button:disabled{opacity:.4;cursor:default}
+#forge .pips{letter-spacing:4px;color:#e8c070;font-size:14px}
+#boons{font-size:12px;margin-top:6px;line-height:1.55;text-shadow:0 1px 0 #000}
+#boons div{color:#c9a0ff}
+#choice{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(4,3,6,.75);z-index:6}
+#choice h3{margin:0 0 4px;font-size:18px;letter-spacing:5px;color:#c9a0ff}
+#choice .sub{font-size:12px;color:#8a7a60;margin-bottom:18px}
+#choice .cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;padding:0 12px}
+#choice .card{width:190px;min-height:150px;background:#120e16;border:2px solid #5a3a7a;padding:14px;cursor:pointer;font:inherit;color:#e8dcc0;text-align:left;display:flex;flex-direction:column;gap:8px}
+#choice .card:hover{border-color:#c9a0ff;background:#1c1424}
+#choice .card .k{font-size:11px;color:#8a7a60}
+#choice .card b{font-size:15px;color:#c9a0ff;letter-spacing:1px}
+#choice .card span{font-size:12px;line-height:1.5}
+#choice .card.sel,#forge button.sel,#pause .opt.sel{outline:2px solid #ffe0a0;outline-offset:2px}
+#pause{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,3,6,.78);z-index:7}
+#pause .panel{width:min(400px,90vw);background:#14100c;border:2px solid #7a5c34;padding:20px 22px}
+#pause h3{margin:0 0 14px;font-size:18px;letter-spacing:5px;color:#e8c070}
+#pause .opt{display:flex;justify-content:space-between;align-items:center;width:100%;font:inherit;font-size:14px;padding:10px 12px;margin-bottom:8px;background:#2a2018;color:#e8dcc0;border:2px solid #5a4630;cursor:pointer;text-align:left}
+#pause .opt b{color:#e8c070}
+#pause .help{font-size:11px;color:#8a7a60;line-height:1.6;margin-top:10px}
+#choice .skip{margin-top:18px;font:inherit;font-size:11px;background:none;border:1px solid #4a3a28;color:#a89878;padding:6px 14px;cursor:pointer}
+#timer{position:fixed;right:16px;top:14px;font-size:14px;color:#c9b890;text-shadow:0 1px 0 #000;pointer-events:none;z-index:2}
+#boss{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);width:min(520px,80vw);display:none;pointer-events:none;z-index:2;text-align:center}
+#boss div.n{font-size:13px;letter-spacing:4px;margin-bottom:4px;text-shadow:0 1px 0 #000}
+#boss .bar{width:100%;height:8px}
+#boss .bar>i{background:#8a2a20}
+#hint{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);font-size:13px;opacity:.9;text-align:center;pointer-events:none;text-shadow:0 1px 0 #000;z-index:2;width:90%}
+#msg{position:fixed;top:34%;left:50%;transform:translate(-50%,-50%);font-size:30px;letter-spacing:8px;color:#c0392b;opacity:0;transition:opacity .5s;pointer-events:none;text-shadow:0 2px 0 #000;z-index:3;text-align:center;white-space:nowrap}
+#msg small{display:block;font-size:12px;letter-spacing:2px;color:#e8dcc0;margin-top:8px}
+#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(150,0,0,.85) 100%);opacity:0;z-index:1}
+#nums{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.dn{position:absolute;left:0;top:0;font-weight:bold;font-size:17px;color:#fff;text-shadow:0 2px 0 #000,0 0 4px #000;white-space:nowrap;will-change:transform,opacity}
+.dn.crit{color:#ffd040;font-size:24px}
+.dn.hurt{color:#ff5a48;font-size:20px}
+.dn.gain{color:#ffb050;font-size:14px}
+.dn.heal{color:#7ee07a;font-size:18px}
+.dn.small{font-size:13px;color:#ffc890}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:rgba(4,3,6,.88);z-index:5;overflow:auto}
+#overlay h1{font-size:24px;letter-spacing:5px;margin:0 0 6px;color:#e8c070;text-align:center}
+#overlay h2{font-size:12px;letter-spacing:3px;margin:0 0 18px;color:#8a7a60;font-weight:normal;text-align:center}
+#overlay p{max-width:500px;text-align:left;line-height:1.7;font-size:13px;margin:2px 20px}
+#overlay p.c{text-align:center;color:#a89878;margin-top:12px}
+#overlay button{margin:20px 6px 0;font:inherit;font-size:15px;padding:10px 26px;background:#2a2018;color:#e8dcc0;border:2px solid #7a5c34;cursor:pointer;letter-spacing:3px}
+#overlay button:hover{background:#3a2c1e}
+#overlay button.small{font-size:11px;padding:6px 14px;border-color:#4a3a28;color:#a89878}
+kbd{background:#2a2018;border:1px solid #5a4630;padding:0 5px;border-radius:2px}
+.tbtn{position:fixed;z-index:4;display:none;width:76px;height:76px;border-radius:50%;border:2px solid rgba(232,220,192,.5);background:rgba(40,30,20,.45);color:#e8dcc0;font:inherit;font-size:12px;letter-spacing:1px}
+#dodgeBtn{right:28px;bottom:40px}
+#healBtn{right:28px;bottom:130px;width:64px;height:64px;border-color:#e04a3a;color:#ff9080}
+#actBtn{right:120px;bottom:60px;width:68px;height:68px;border-color:#5fa8ff;color:#9fd0ff;font-size:11px}
+#stickBase{position:fixed;width:110px;height:110px;border-radius:50%;border:2px solid rgba(232,220,192,.35);display:none;pointer-events:none;z-index:3;transform:translate(-50%,-50%)}
+#stickKnob{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(232,220,192,.35)}
