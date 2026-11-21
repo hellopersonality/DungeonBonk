@@ -95,8 +95,16 @@ export function createActor(o) {
     /** Work out left/right flip (with hysteresis) and front/back view for a world facing angle. */
     orient(facing) {
       const s = Math.sin(S.yaw - facing);       // + = facing screen-right
-      if (s > 0.12) a.flip = false; else if (s < -0.12) a.flip = true;
       const c = Math.cos(facing - S.yaw);       // + = facing away from the camera
+      if (o.dirs4) {
+        // sheets with drawn left/right/up/down views: pick the nearest, with some hysteresis
+        const ang = Math.atan2(s, c), centre = { up: 0, right: Math.PI / 2, down: Math.PI, left: -Math.PI / 2 };
+        const off = d => Math.abs(Math.atan2(Math.sin(ang - centre[d]), Math.cos(ang - centre[d])));
+        if (!a.dir || off(a.dir) > Math.PI / 4 + 0.15) a.dir = ['up', 'right', 'down', 'left'].reduce((b, d) => off(d) < off(b) ? d : b);
+        a.flip = false;
+        return a.dir;
+      }
+      if (s > 0.12) a.flip = false; else if (s < -0.12) a.flip = true;
       return c > 0.4 ? 'away' : c < -0.4 ? 'front' : 'side';
     },
     /** Repaint only when the frame key changed. */
@@ -104,7 +112,7 @@ export function createActor(o) {
       if (key === a.key) return;
       a.key = key;
       g.clearRect(0, 0, o.w, o.h);
-      if (A.anim === 'dead') { // fall over: the idle frame squashed flat against the floor
+      if (A.anim === 'dead' && !o.ownDeath) { // fall over: the idle frame squashed flat against the floor
         tg.clearRect(0, 0, o.w, o.h);
         o.draw(tg, { ...A, anim: 'idle', f: 0 }); outline(tg, o.w, o.h);
         const k = A.k, dw = o.w * lerp(1, 1.15, k), dh = o.h * lerp(1, 0.28, k);
