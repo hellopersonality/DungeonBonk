@@ -152,6 +152,8 @@ export function buildRegion1() {
     },
     onEnemyKilled,
     update,
+    onSave() { if (R.cacheHeld) { save.secret = true; scene.remove(R.cache); R.cache = null; R.cacheHeld = false; } },
+    onRespawn() { if (R.cacheHeld) { R.cache.visible = true; R.cacheHeld = false; } },
   });
   return rooms;
 }
@@ -172,9 +174,10 @@ function onEnemyKilled(e) {
 function update() {
   if (hero.dead) return;
   // secret cache behind the illusory wall
-  if (R.cache && Math.hypot(hero.pos.x - 10, hero.pos.z - 13) < 1.1) {
-    scene.remove(R.cache); R.cache = null;
-    hero.carried += 12; save.secret = true; writeSave();
+  // (it only counts as taken once its embers are banked; die first and it comes back)
+  if (R.cache && !R.cacheHeld && Math.hypot(hero.pos.x - 10, hero.pos.z - 13) < 1.1) {
+    R.cache.visible = false; R.cacheHeld = true;
+    hero.carried += 12;
     dmgNum(10, 1.4, 13, '+12', 'gain');
     showMsg('A HIDDEN CACHE', '+12 embers · save at a crystal to keep them', '#ffb050', 2.6);
   }

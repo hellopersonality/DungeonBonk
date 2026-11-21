@@ -18,6 +18,7 @@ import { showMsg } from '../ui/messages.js';
  *   onReset()                    dungeon reset (rest or death)
  *   onEnemyKilled(e)
  *   update(dt)                   region triggers (gates, timers, secrets)
+ *   onSave()                     embers were just banked at a crystal
  */
 export const level = {};
 export function setLevel(l) { Object.assign(level, l); }
@@ -45,6 +46,7 @@ export function saveAt(c) {
   const n = hero.carried;
   if (n) dmgNum(c.x, 2, c.z, '+' + n, 'gain');
   save.banked += n; hero.carried = 0; save.flasks = hero.flasks;
+  level.onSave && level.onSave();
   writeSave();
   sfx.save();
   showMsg('SAVED', (n ? n + ' embers banked · ' : '') + 'you will return here', '#e8c070', 2.2);
