@@ -15,12 +15,11 @@ import { showHint } from '../ui/messages.js';
 const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
 const look = { id: null, lx: 0, ly: 0 };
 
-/** Orbit the camera by dx radians and change its distance by dz (capped). */
-export function lookDelta(dx, dz = 0) {
+/** Orbit the camera by dx radians and tilt it by dy (positive looks further down). */
+export function lookDelta(dx, dy) {
   S.yaw -= dx;
-  zoomBy(dz);
+  S.pitch = clamp(S.pitch + dy, CAM.pitchMin, CAM.pitchMax);
 }
-export function zoomBy(d) { S.zoom = clamp(S.zoom + d, CAM.zoomMin, CAM.zoomMax); }
 
 /** Desired movement direction in world space (camera-relative), length ≤ 1. */
 export function moveInput() {
@@ -34,13 +33,13 @@ export function moveInput() {
   return v;
 }
 
-/** Arrow keys orbit (left/right) and zoom (up = closer). Called each frame by the camera. */
+/** Arrow keys orbit (left/right) and tilt (up/down). Called each frame by the camera. */
 export function keyLook(dt) {
   if (S.paused) return;
-  if (keys.ArrowLeft) S.yaw += dt * CAM.rotateSpeed * 0.75;
-  if (keys.ArrowRight) S.yaw -= dt * CAM.rotateSpeed * 0.75;
-  if (keys.ArrowUp) zoomBy(-dt * CAM.zoomSpeed);
-  if (keys.ArrowDown) zoomBy(dt * CAM.zoomSpeed);
+  if (keys.ArrowLeft) lookDelta(-dt * CAM.rotateSpeed * 0.75, 0);
+  if (keys.ArrowRight) lookDelta(dt * CAM.rotateSpeed * 0.75, 0);
+  if (keys.ArrowUp) lookDelta(0, -dt * CAM.pitchSpeed * 0.8);
+  if (keys.ArrowDown) lookDelta(0, dt * CAM.pitchSpeed * 0.8);
 }
 
 function onKeyDown(e) {
@@ -76,7 +75,7 @@ export function initInput() {
   addEventListener('keyup', e => { keys[e.code] = false; });
   addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
-  // mouse: move/drag sideways to orbit the camera (pointer lock, or drag as a fallback)
+  // mouse: orbit and tilt the camera (pointer lock, or drag as a fallback)
   canvas.addEventListener('mousedown', () => {
     if (!S.started) return;
     try { const r = canvas.requestPointerLock && canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (_) {}
@@ -85,16 +84,11 @@ export function initInput() {
     if (!S.started || S.paused) return;
     if (document.pointerLockElement === canvas || (e.buttons & 1)) {
       S.padActive = false;
-      lookDelta(e.movementX * 0.0026 * settings.mouseSens);
+      lookDelta(e.movementX * 0.0026 * settings.mouseSens, e.movementY * 0.0022 * settings.mouseSens * (settings.invertMouseY ? -1 : 1));
     }
   });
-  // mouse wheel zooms (capped)
-  canvas.addEventListener('wheel', e => {
-    if (!S.started || S.paused) return;
-    e.preventDefault(); zoomBy(Math.sign(e.deltaY) * 0.7);
-  }, { passive: false });
 
-  // touch: left side = virtual stick, right side: drag sideways to orbit, up/down to zoom
+  // touch: left side = virtual stick, right side = drag to orbit and tilt the camera
   const stickBase = document.getElementById('stickBase'), stickKnob = document.getElementById('stickKnob');
   canvas.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' || !S.started) return;
@@ -111,7 +105,7 @@ export function initInput() {
       stick.x = x; stick.y = y;
       stickKnob.style.transform = `translate(${x * 34}px,${y * 34}px)`;
     } else if (e.pointerId === look.id) {
-      lookDelta((e.clientX - look.lx) * 0.0065, (e.clientY - look.ly) * 0.012);
+      lookDelta((e.clientX - look.lx) * 0.0065, (e.clientY - look.ly) * 0.0045);
       look.lx = e.clientX; look.ly = e.clientY;
     }
   });

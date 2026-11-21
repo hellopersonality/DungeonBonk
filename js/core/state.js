@@ -6,8 +6,7 @@ export const S = {
   started: false,   // title screen dismissed
   paused: false,    // any menu is open (pause, crystal, forge, altar)
   yaw: 0,           // camera orbit angle around the hero (radians)
-  zoom: CAM.zoom,   // camera distance from the hero (capped by CAM.zoomMin/zoomMax)
-  pitch: 0.8,       // camera pitch (positive looks down); derived from zoom each frame
+  pitch: CAM.pitch, // camera pitch (positive looks down), clamped to CAM.pitchMin..pitchMax
   clock: 0,         // game time in seconds (stops while paused)
   hitstop: 0,       // freeze-frame timer on hits
   shake: 0,         // camera shake amount
