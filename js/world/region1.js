@@ -9,7 +9,7 @@ import { save, writeSave } from '../core/save.js';
 import { sfx } from '../core/audio.js';
 import { MAT, THEMES } from '../render/textures.js';
 import { makeBox, fadeBox, boxM, WALL_H } from './geometry.js';
-import { room, rooms, inRoom, FULL } from './rooms.js';
+import { room, rooms, inRoom, FULL, buildWalls } from './rooms.js';
 import * as P from './props.js';
 import { scene } from '../render/renderer.js';
 import { hero } from '../entities/hero.js';
@@ -46,6 +46,7 @@ export function buildRegion1() {
   room('passage', -35, -31.8, 10, 14, { n: FULL, s: FULL }, T.passage);
   room('arena', -42, -24, -10, 10, { n: [[-35, -31.8]], e: [[-1.6, 1.6]] }, T.arena);
   room('ret', -24, -8, -1.6, 1.6, { e: FULL, w: FULL }, T.passage);
+  buildWalls();
 
   const pillar = (x, z, w, theme) => fadeBox(x - w, x + w, 0, WALL_H, z - w, z + w, theme.wall);
 

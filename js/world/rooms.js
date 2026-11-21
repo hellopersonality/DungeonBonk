@@ -37,10 +37,15 @@ function flatPlane(x0, x1, z0, z1, y, mat, up) {
   return m;
 }
 
-/** Build a room: walls (with door gaps), floor and ceiling using the theme's materials. */
+// Wall footprints are collected first and merged in buildWalls(). Neighbouring rooms'
+// walls overlap at doorways and corners; emitting them separately would create
+// coplanar faces that z-fight (flicker).
+const pendingWalls = [];
+
+/** Build a room: floor and ceiling now, walls (with door gaps) queued for buildWalls(). */
 export function room(name, x0, x1, z0, z1, doors, theme) {
   doors = doors || {};
-  const T = 1, wall = (a, b, c, d) => makeBox(a, b, 0, WALL_H, c, d, theme.wall, true);
+  const T = 1, wall = (a, b, c, d) => pendingWalls.push({ x0: a, x1: b, z0: c, z1: d, theme });
   const exW = isFull(doors.w) ? 0 : T, exE = isFull(doors.e) ? 0 : T;
   for (const [a, b] of segs(x0 - exW, x1 + exE, doors.s || [])) wall(a, b, z0 - T, z0);
   for (const [a, b] of segs(x0 - exW, x1 + exE, doors.n || [])) wall(a, b, z1, z1 + T);
@@ -50,6 +55,40 @@ export function room(name, x0, x1, z0, z1, doors, theme) {
   flatPlane(x0, x1, z0, z1, WALL_H, theme.ceil, false);
   rooms[name] = { name, x0, x1, z0, z1, theme };
   return rooms[name];
+}
+
+/**
+ * Merge every queued wall footprint on a 0.2-unit grid and emit the union as
+ * non-overlapping boxes (greedy rectangles). A cell keeps the theme of the first
+ * room that claimed it. Call once after all rooms of a region are defined.
+ */
+export function buildWalls() {
+  const G = 5; // cells per unit; all wall edges in our layouts sit on 0.2-unit steps
+  const q = v => Math.round(v * G);
+  let gx0 = Infinity, gz0 = Infinity, gx1 = -Infinity, gz1 = -Infinity;
+  for (const w of pendingWalls) { gx0 = Math.min(gx0, q(w.x0)); gx1 = Math.max(gx1, q(w.x1)); gz0 = Math.min(gz0, q(w.z0)); gz1 = Math.max(gz1, q(w.z1)); }
+  const W = gx1 - gx0, D = gz1 - gz0;
+  const themes = [], cell = new Int16Array(W * D); // 0 empty, else theme index + 1
+  for (const w of pendingWalls) {
+    let ti = themes.indexOf(w.theme); if (ti < 0) { themes.push(w.theme); ti = themes.length - 1; }
+    for (let z = q(w.z0) - gz0; z < q(w.z1) - gz0; z++)
+      for (let x = q(w.x0) - gx0; x < q(w.x1) - gx0; x++)
+        if (!cell[z * W + x]) cell[z * W + x] = ti + 1;
+  }
+  const used = new Uint8Array(W * D);
+  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
+    const t = cell[z * W + x];
+    if (!t || used[z * W + x]) continue;
+    let w = 1; while (x + w < W && cell[z * W + x + w] === t && !used[z * W + x + w]) w++;
+    let d = 1;
+    grow: while (z + d < D) {
+      for (let i = 0; i < w; i++) { const k = (z + d) * W + x + i; if (cell[k] !== t || used[k]) break grow; }
+      d++;
+    }
+    for (let j = 0; j < d; j++) for (let i = 0; i < w; i++) used[(z + j) * W + x + i] = 1;
+    makeBox((gx0 + x) / G, (gx0 + x + w) / G, 0, WALL_H, (gz0 + z) / G, (gz0 + z + d) / G, themes[t - 1].wall, true);
+  }
+  pendingWalls.length = 0;
 }
 
 export const inRoom = (n, p) => { const r = rooms[n]; return !!r && p.x > r.x0 && p.x < r.x1 && p.z > r.z0 && p.z < r.z1; };
