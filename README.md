@@ -25,8 +25,7 @@ Push this folder to a repo (or a subfolder of one), then enable Pages for the br
 | Action | Keyboard / mouse | Controller |
 |---|---|---|
 | Move | WASD | Left stick |
-| Turn camera | Mouse sideways (click to lock) / ← → | Right stick left/right |
-| Zoom (capped) | Mouse wheel / ↑ ↓ | Right stick up/down |
+| Camera (orbit / tilt) | Mouse (click to lock) / arrows | Right stick |
 | Dash (i-frames) | Space / Shift | A / RB / RT |
 | Interact | E | X |
 | Drink flask | Q | Y |
@@ -78,4 +77,4 @@ shadow. Frames are painted by a `draw(ctx, A)` function. Today those are procedu
 placeholders (`render/placeholders.js`); to use real art, give `createActor` a `draw` that
 blits frames from a sprite sheet. Keep sprites at 16 px per world unit so their pixels
 match the wall textures. The hero faces where they walk (`hero.facing`), independent of
-the camera. Camera tuning (zoom range, pitch, FOV) is `CAM` in `data/tuning.js`.
+the camera. Camera tuning (distance, pitch range, FOV) is `CAM` in `data/tuning.js`.

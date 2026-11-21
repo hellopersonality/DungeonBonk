@@ -71,9 +71,9 @@ export function pollPad(dt, onStart) {
   } else {
     pad.x = lx; pad.y = ly;
     const sens = settings.padSens;
-    // right stick: left/right orbits the camera, up/down zooms (up = closer; capped)
+    // right stick freely controls the camera: left/right orbits, up/down tilts
     S.yaw -= rx * Math.abs(rx) * CAM.rotateSpeed * dt * sens;
-    S.zoom = clamp(S.zoom + ry * Math.abs(ry) * CAM.zoomSpeed * dt * sens * (settings.invertY ? -1 : 1), CAM.zoomMin, CAM.zoomMax);
+    S.pitch = clamp(S.pitch + ry * Math.abs(ry) * CAM.pitchSpeed * dt * sens * (settings.invertY ? -1 : 1), CAM.pitchMin, CAM.pitchMax);
     if (pressed(BTN.A) || pressed(BTN.RB) || pressed(BTN.RT)) tryDodge();
     if (pressed(BTN.X)) tryInteract();
     if (pressed(BTN.Y)) tryDrink();

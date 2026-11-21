@@ -1,6 +1,5 @@
-// Orbit camera. It follows the hero, rotates around them (S.yaw) and zooms in and out
-// within a capped range (S.zoom). Pitch is derived from the zoom: close = flatter,
-// far = more top-down. The camera never moves to dodge walls: walls between it and the
+// Orbit camera. It follows the hero at a fixed distance and is freely rotated around them:
+// S.yaw orbits, S.pitch tilts between a low angle and near top-down. The camera never moves to dodge walls: walls between it and the
 // hero are cut away with the clip plane, pillars fade, and line-of-sight hides what the
 // hero can't see (see visibility.js).
 import { V3, lerp, clamp } from '../core/util.js';
@@ -14,7 +13,8 @@ import { hero } from '../entities/hero.js';
 import { keyLook } from '../input/input.js';
 
 const target = new V3(), dir = new V3(), pos = new V3(), _p = new V3(), _fwd = new V3();
-let dist = CAM.zoom, clip = 0;
+const dist = CAM.dist;
+let clip = 0;
 
 /** Is there a full-height wall at this point? (The camera may sit above the walls.) */
 function wallAt(p) {
@@ -27,10 +27,7 @@ function wallAt(p) {
 
 export function updateCamera(dt) {
   keyLook(dt);
-  S.zoom = clamp(S.zoom, CAM.zoomMin, CAM.zoomMax);
-  dist = lerp(dist, S.zoom, Math.min(1, dt * 10));
-  const zt = (dist - CAM.zoomMin) / (CAM.zoomMax - CAM.zoomMin);
-  S.pitch = lerp(CAM.pitchNear, CAM.pitchFar, zt);
+  S.pitch = clamp(S.pitch, CAM.pitchMin, CAM.pitchMax);
 
   const fx = Math.sin(S.yaw), fz = Math.cos(S.yaw);
   target.set(hero.pos.x, CAM.targetY, hero.pos.z);
@@ -50,7 +47,7 @@ export function updateCamera(dt) {
 
   if (S.shake > 0) { pos.x += (Math.random() - 0.5) * S.shake * 0.5; pos.y += (Math.random() - 0.5) * S.shake * 0.5; }
   camera.position.copy(pos);
-  // zoomed out, the camera rises above the ceiling: hide ceilings and beams so you look down into the room
+  // tilted high, the camera rises above the ceiling: hide ceilings and beams so you look down into the room
   const above = pos.y > WALL_H - 0.4;
   for (const c of ceilings) c.visible = !above;
   camera.lookAt(target);
@@ -58,7 +55,7 @@ export function updateCamera(dt) {
   clipPlane.normal.copy(_fwd);
   clipPlane.constant = -(_fwd.x * pos.x + _fwd.y * pos.y + _fwd.z * pos.z + clip);
 
-  // fog is measured from the camera, so keep it clear of the hero at any zoom
+  // fog is measured from the camera, so keep it clear of the hero
   scene.fog.near = dist + 2; scene.fog.far = dist + 25;
 
   updateSight(hero.pos, dt);
