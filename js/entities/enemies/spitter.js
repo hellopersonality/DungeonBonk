@@ -6,32 +6,18 @@ import { av, sfx } from '../../core/audio.js';
 import { SPIT } from '../../data/tuning.js';
 import { scene } from '../../render/renderer.js';
 import { maskMat } from '../../render/visibility.js';
-import { boxM, circleGeo, teleMat, los } from '../../world/geometry.js';
+import { circleGeo, teleMat, los } from '../../world/geometry.js';
 import { hero } from '../hero.js';
 import { hurtHero } from '../../systems/combat.js';
 import { enemyBase, resetEnemy } from './registry.js';
 import { idleCommon, stepForward, applyKnockback } from './common.js';
+import { stubRig, attachSprite } from './sprites.js';
 
 const SAC_IDLE = 0x3a5a18;
 
 export function makeSpitter(x, z, f) {
   const e = enemyBase('spitter', x, z, f, SPIT);
-  const M = e.M, hide = M(0x5a6a36), belly = M(0x9aa060), lip = M(0x3a4422);
-  const leg = x => { const g = new THREE.Group(); g.position.set(x, 0.5, 0); e.model.add(g); boxM(0.28, 0.45, 0.28, M(0x3a3424), 0, -0.25, 0, g); return g; };
-  e.lL = leg(0.24); e.lR = leg(-0.24);
-  e.upper = new THREE.Group(); e.upper.position.y = 0.5; e.model.add(e.upper);
-  const U = e.upper;
-  boxM(1.0, 0.95, 0.9, hide, 0, 0.5, 0, U);
-  boxM(0.7, 0.6, 0.1, belly, 0, 0.4, 0.46, U);
-  e.sacMat = new THREE.MeshBasicMaterial({ color: SAC_IDLE });
-  boxM(0.7, 0.7, 0.55, e.sacMat, 0, 1.15, -0.3, U);
-  for (let i = 0; i < 3; i++) boxM(0.05, 0.6, 0.04, lip, (i - 1) * 0.22, 1.15, -0.02, U); // veins
-  boxM(0.62, 0.12, 0.26, lip, 0, 0.8, 0.5, U);   // upper lip
-  boxM(0.56, 0.1, 0.24, lip, 0, 0.56, 0.48, U);  // jaw
-  boxM(0.46, 0.12, 0.05, e.sacMat, 0, 0.68, 0.58, U); // glowing gullet
-  e.eyeMat = new THREE.MeshBasicMaterial({ color: 0x2a4010 });
-  boxM(0.11, 0.09, 0.03, e.eyeMat, 0.2, 0.98, 0.42, U); boxM(0.11, 0.09, 0.03, e.eyeMat, -0.2, 0.98, 0.42, U);
-  boxM(0.14, 0.4, 0.14, hide, 0.56, 0.42, 0.2, U); boxM(0.14, 0.4, 0.14, hide, -0.56, 0.42, 0.2, U);
+  stubRig(e); attachSprite(e, 'spitter');
   resetEnemy(e);
   return e;
 }

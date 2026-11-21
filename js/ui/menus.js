@@ -25,8 +25,7 @@ const slider = key => ({
 
 const PAUSE_ITEMS = [
   { label: () => 'Resume', act: () => closeMenu() },
-  { label: () => `Invert Y (controller) <b>${settings.invertY ? 'On' : 'Off'}</b>`, act: toggle('invertY'), adj: toggle('invertY') },
-  { label: () => `Invert Y (mouse) <b>${settings.invertMouseY ? 'On' : 'Off'}</b>`, act: toggle('invertMouseY'), adj: toggle('invertMouseY') },
+  { label: () => `Invert zoom (controller) <b>${settings.invertY ? 'On' : 'Off'}</b>`, act: toggle('invertY'), adj: toggle('invertY') },
   { label: () => `Stick sensitivity <b>◀ ${settings.padSens.toFixed(1)} ▶</b>`, ...slider('padSens') },
   { label: () => `Mouse sensitivity <b>◀ ${settings.mouseSens.toFixed(1)} ▶</b>`, ...slider('mouseSens') },
   { label: () => `Sound <b>${S.muted ? 'Off' : 'On'}</b>`, act: () => { S.muted = !S.muted; }, adj: () => { S.muted = !S.muted; } },

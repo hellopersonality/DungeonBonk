@@ -2,6 +2,7 @@
 import { V3, W, clamp } from '../core/util.js';
 import { S, keys } from '../core/state.js';
 import { settings } from '../core/save.js';
+import { CAM } from '../data/tuning.js';
 import { canvas, togglePixelMode } from '../render/renderer.js';
 import { pad } from './gamepad.js';
 import { tryDodge, tryDrink } from '../entities/hero.js';
@@ -14,10 +15,12 @@ import { showHint } from '../ui/messages.js';
 const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
 const look = { id: null, lx: 0, ly: 0 };
 
-export function lookDelta(dx, dy) {
+/** Orbit the camera by dx radians and change its distance by dz (capped). */
+export function lookDelta(dx, dz = 0) {
   S.yaw -= dx;
-  S.pitch = clamp(S.pitch + dy, -0.35, 0.95);
+  zoomBy(dz);
 }
+export function zoomBy(d) { S.zoom = clamp(S.zoom + d, CAM.zoomMin, CAM.zoomMax); }
 
 /** Desired movement direction in world space (camera-relative), length ≤ 1. */
 export function moveInput() {
@@ -31,12 +34,13 @@ export function moveInput() {
   return v;
 }
 
-/** Arrow keys turn the camera (called each frame by the camera). */
+/** Arrow keys orbit (left/right) and zoom (up = closer). Called each frame by the camera. */
 export function keyLook(dt) {
-  if (keys.ArrowLeft) S.yaw += dt * 2.2;
-  if (keys.ArrowRight) S.yaw -= dt * 2.2;
-  if (keys.ArrowUp) S.pitch = clamp(S.pitch - dt * 1.5, -0.35, 0.95);
-  if (keys.ArrowDown) S.pitch = clamp(S.pitch + dt * 1.5, -0.35, 0.95);
+  if (S.paused) return;
+  if (keys.ArrowLeft) S.yaw += dt * CAM.rotateSpeed * 0.75;
+  if (keys.ArrowRight) S.yaw -= dt * CAM.rotateSpeed * 0.75;
+  if (keys.ArrowUp) zoomBy(-dt * CAM.zoomSpeed);
+  if (keys.ArrowDown) zoomBy(dt * CAM.zoomSpeed);
 }
 
 function onKeyDown(e) {
@@ -72,7 +76,7 @@ export function initInput() {
   addEventListener('keyup', e => { keys[e.code] = false; });
   addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
-  // mouse look (pointer lock, or drag as a fallback)
+  // mouse: move/drag sideways to orbit the camera (pointer lock, or drag as a fallback)
   canvas.addEventListener('mousedown', () => {
     if (!S.started) return;
     try { const r = canvas.requestPointerLock && canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (_) {}
@@ -81,11 +85,16 @@ export function initInput() {
     if (!S.started || S.paused) return;
     if (document.pointerLockElement === canvas || (e.buttons & 1)) {
       S.padActive = false;
-      lookDelta(e.movementX * 0.0026 * settings.mouseSens, e.movementY * 0.0022 * settings.mouseSens * (settings.invertMouseY ? -1 : 1));
+      lookDelta(e.movementX * 0.0026 * settings.mouseSens);
     }
   });
+  // mouse wheel zooms (capped)
+  canvas.addEventListener('wheel', e => {
+    if (!S.started || S.paused) return;
+    e.preventDefault(); zoomBy(Math.sign(e.deltaY) * 0.7);
+  }, { passive: false });
 
-  // touch: left side = virtual stick, right side = look
+  // touch: left side = virtual stick, right side: drag sideways to orbit, up/down to zoom
   const stickBase = document.getElementById('stickBase'), stickKnob = document.getElementById('stickKnob');
   canvas.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' || !S.started) return;
@@ -102,7 +111,7 @@ export function initInput() {
       stick.x = x; stick.y = y;
       stickKnob.style.transform = `translate(${x * 34}px,${y * 34}px)`;
     } else if (e.pointerId === look.id) {
-      lookDelta((e.clientX - look.lx) * 0.0065, (e.clientY - look.ly) * 0.0045);
+      lookDelta((e.clientX - look.lx) * 0.0065, (e.clientY - look.ly) * 0.012);
       look.lx = e.clientX; look.ly = e.clientY;
     }
   });
