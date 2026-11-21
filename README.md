@@ -73,8 +73,10 @@ moves to dodge walls: a clip plane cuts away walls between the camera and the he
 The level is 3D with pixel-art textures; the hero and every enemy are billboarded
 sprites (`render/sprites.js`). A sprite actor is an upright quad that turns to face the
 camera, flips left/right by which way the character faces on screen, and has a blob
-shadow. Frames are painted by a `draw(ctx, A)` function. Today those are procedural
-placeholders (`render/placeholders.js`); to use real art, give `createActor` a `draw` that
-blits frames from a sprite sheet. Keep sprites at 16 px per world unit so their pixels
+shadow. Frames are painted by a `draw(ctx, A)` function. The hero uses a real sprite sheet
+(`assets/sprites/knight.png`, wired up in `render/knight.js`) with drawn down/left/up/right
+views for walk, attack, hurt and death. It is cut from the concept sheet in
+`assets/source/` by `python3 tools/cut_knight.py`. Enemies still use procedural placeholders
+(`render/placeholders.js`); give them sheets the same way. Keep sprites at 16 px per world unit so their pixels
 match the wall textures. The hero faces where they walk (`hero.facing`), independent of
 the camera. Camera tuning (distance, pitch range, FOV) is `CAM` in `data/tuning.js`.

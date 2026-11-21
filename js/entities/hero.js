@@ -8,7 +8,7 @@ import { weaponStats, SWING_T, BLADE_GLOW } from '../data/weapons.js';
 import { BOON_FX } from '../data/boons.js';
 import { scene } from '../render/renderer.js';
 import { createActor, createGhost, removeGhost } from '../render/sprites.js';
-import { PLACEHOLDER } from '../render/placeholders.js';
+import { KNIGHT, knightLoaded, whenKnightLoaded } from '../render/knight.js';
 import { collide, sectorGeo } from '../world/geometry.js';
 import { enemies } from './enemies/registry.js';
 import { hitEnemy } from '../systems/combat.js';
@@ -23,7 +23,7 @@ export const hero = {
   facing: 0, // world angle the hero faces (movement direction); the sweep arc points this way
   hp: HERO.maxHp, st: 100, stDelay: 0,
   roll: 0, rollDir: new V3(), iframes: 0,
-  atkCd: 0, swingT: 0, swings: 0,
+  atkCd: 0, swingT: 0, swingAnim: 0, swings: 0,
   hurt: 0, dead: false, deadT: 0, walk: 0,
   carried: 0, flasks: save.flasks,
   drinkT: 0, drinkDone: false,
@@ -32,6 +32,9 @@ export const hero = {
 
 /** Current sweep blade stats (updated by applyWeapon). */
 export const weapon = { s: weaponStats(save.wlvl), glow: 0 };
+
+/** Sprite swing animation length (s); the hit itself lands instantly. Keep below the weapon cooldown. */
+const SWING_ANIM = 0.3;
 
 const rig = {}; // sprite actor, floor shapes, light
 const ghosts = [];
@@ -42,8 +45,8 @@ let ghostT = 0;
 // wedge, swing flash) and the light are 3D; they rotate with hero.facing.
 export function initHero() {
   const root = new THREE.Group(); scene.add(root);
-  const P = PLACEHOLDER.hero;
-  rig.actor = createActor({ w: P.w, h: P.h, shadow: P.shadow, draw: P.draw, mask: false }); // the hero is always visible
+  rig.actor = createActor({ ...KNIGHT, mask: false }); // the hero is always visible
+  whenKnightLoaded(() => { rig.actor.key = null; });
 
   // reach wedge on the floor and the swing flash
   const W = weapon.s;
@@ -176,10 +179,11 @@ export function updateHero(dt) {
       sfx.swing();
       targets.forEach(hitEnemy);
       hero.riposte = false;
-      hero.atkCd = W.cd; hero.swingT = SWING_T; hero.swings++;
+      hero.atkCd = W.cd; hero.swingT = SWING_T; hero.swingAnim = SWING_ANIM; hero.swings++;
       if (has('third') && hero.swings % 3 === 0) spawnWave();
     }
   }
+  if (hero.swingAnim > 0) hero.swingAnim -= dt;
   if (hero.swingT > 0) {
     hero.swingT -= dt;
     const k = 1 - Math.max(0, hero.swingT) / SWING_T;
@@ -196,20 +200,17 @@ export function updateHeroVisuals(now, raw) {
   A.setPos(hero.pos.x, 0, hero.pos.z);
   S.healFlash -= raw;
 
-  // pick the animation for the current state
-  const view = A.orient(hero.facing);
+  // pick the sheet animation and frame for the current state (see render/knight.js)
+  const dir = A.orient(hero.facing);
   const flash = hero.hurt > 0.2 ? 'hurt' : S.healFlash > 0 ? 'heal' : '';
   const moving = Math.hypot(hero.vel.x, hero.vel.z) > 0.6;
-  let anim = 'idle', f = Math.floor(S.clock * 2) & 1, k = 0;
-  if (hero.dead) { anim = 'dead'; k = Math.min(1, hero.deadT * 2.5); }
-  else if (hero.roll > 0) anim = 'dash';
-  else if (hero.swingT > 0) { anim = 'swing'; k = 1 - Math.max(0, hero.swingT) / SWING_T; }
-  else if (hero.drinkT > 0) anim = 'drink';
-  else if (hero.hurt > 0.3) anim = 'hurt';
-  else if (moving) { anim = 'walk'; f = Math.floor(hero.walk / (Math.PI / 2)) & 3; }
-  const q = Math.min(5, Math.floor(k * 6)); // quantize timed animations to a few pixel-art frames
-  A.show(`${anim}|${f}|${q}|${view}|${flash}|${save.wlvl}|${hero.riposte ? 1 : 0}`,
-    { anim, f, k: anim === 'dead' ? Math.round(k * 4) / 4 : q / 5, view, flash, wlvl: save.wlvl, riposte: hero.riposte });
+  let sheet = 'attack', frame = 0;                       // idle: the ready stance
+  if (hero.dead) { sheet = 'death'; frame = Math.min(3, Math.floor(hero.deadT / 0.18)); }
+  else if (hero.swingAnim > 0) { sheet = 'attack'; frame = 1 + Math.min(4, Math.floor((1 - hero.swingAnim / SWING_ANIM) * 5)); }
+  else if (hero.hurt > 0) { sheet = 'hurt'; frame = Math.min(2, Math.floor((0.35 - hero.hurt) / 0.12)); }
+  else if (hero.roll > 0) { sheet = 'walk'; frame = 2; }  // mid-stride lunge
+  else if (moving) { sheet = 'walk'; frame = Math.floor(hero.walk / (Math.PI / 3)) % 6; }
+  A.show(`${sheet}|${frame}|${dir}|${flash}|${knightLoaded() ? 1 : 0}`, { sheet, frame, dir, flash });
   A.mesh.visible = !(hero.iframes > 0 && hero.roll <= 0 && !hero.dead && Math.floor(now / 60) % 2 === 0);
 
   rig.light.position.set(hero.pos.x, 2.4, hero.pos.z);
