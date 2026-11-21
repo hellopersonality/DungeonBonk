@@ -1,7 +1,7 @@
 # The Hollow Loop
 
-A third-person dungeon crawler with auto-attacking combat, an interconnected looping
-dungeon, and roguelike boons. Runs in the browser with three.js (r128 from cdnjs).
+A third-person dungeon crawler with auto-attacking combat, an interconnected dungeon
+that circles back on itself, permanent boss kills, and boons that last until you rest. Runs in the browser with three.js (r128 from cdnjs).
 No build step.
 
 ## Run locally

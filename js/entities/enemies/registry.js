@@ -40,6 +40,7 @@ export function enemyBase(type, sx, sz, face, o) {
 }
 
 export function resetEnemy(e) {
+  if (e.permaDead) { e.state = 'dead'; e.t = 99; e.root.visible = false; e.tele.forEach(m => { m.material.opacity = 0; }); return; }
   e.root.position.copy(e.spawn); e.root.visible = true; e.root.rotation.set(0, 0, 0);
   e.hp = e.maxHp; e.state = 'idle'; e.t = 0; e.facing = e.spawnFace; e.cd = 0; e.flash = 0;
   e.kb.set(0, 0, 0); e.spin = 0; e.phase2 = false; e.combo = false; e.hitDone = false; e.burnCd = 0;

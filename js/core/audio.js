@@ -89,7 +89,6 @@ export const sfx = {
   death() { tone('sawtooth', 300, 40, 1.4, 0.22); nz(1.2, 0.15, 'lowpass', 600, 100, 1); },
   roar() { tone('sawtooth', 62, 38, 1.1, 0.35); nz(1.0, 0.28, 'lowpass', 500, 180, 1); },
   gate() { nz(1.2, 0.22, 'lowpass', 320, 140, 1); tone('sine', 52, 44, 1.2, 0.22); },
-  loop() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone('triangle', f, f, 0.55, 0.07, i * 0.1)); },
   explode(v) { tone('sine', 130, 30, 0.45, 0.45 * v); nz(0.42, 0.4 * v, 'lowpass', 2200, 150, 0.8); },
   wave() { nz(0.28, 0.18, 'bandpass', 1500, 400, 2); tone('triangle', 600, 300, 0.2, 0.06); },
   riposte() { tone('triangle', 1320, 1980, 0.22, 0.14); tone('triangle', 1980, 2640, 0.2, 0.08, 0.06); },

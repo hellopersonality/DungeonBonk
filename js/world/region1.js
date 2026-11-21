@@ -1,9 +1,10 @@
-// Region 1: the first loop.
+// Region 1: the Hollow.
 //   Hub → Hall → Corridor → Cistern → Passage → Gatekeeper Arena → Return Passage → Hub
+//   The layout circles back to the hub physically; the Return Passage is the shortcut.
 // Everything specific to this region lives here: layout, set dressing, spawns,
-// interactables and triggers (loop timer, boss gate, shortcut, secret cache).
+// interactables and triggers (boss gate, shortcut, secret cache).
 // A new region should be a new file with the same shape (build + level hooks).
-import { V3, fmtTime } from '../core/util.js';
+import { V3 } from '../core/util.js';
 import { S } from '../core/state.js';
 import { save, writeSave } from '../core/save.js';
 import { sfx } from '../core/audio.js';
@@ -24,7 +25,6 @@ import { addInteract } from '../systems/interact.js';
 import { setLevel, progress } from '../systems/world.js';
 import { openCrystal } from '../ui/menus.js';
 import { openForge } from '../ui/forge.js';
-import { loop } from '../ui/hud.js';
 import { showMsg } from '../ui/messages.js';
 import { dmgNum } from '../ui/numbers.js';
 
@@ -129,6 +129,7 @@ export function buildRegion1() {
   makeAltar(6.2, 26.2, 2);
   makeAltar(-38.6, 15.4, 2);
   R.bossAltar = makeAltar(-33, -6.5, 3, true);
+  if (save.defeated.gatekeeper) revealAltar(R.bossAltar);
 
   // ---------- interactables ----------
   for (const c of [R.hubCrystal, R.cisternCrystal]) addInteract({ x: c.x, z: c.z, r: 2.3, label: 'Crystal', prompt: 'Crystal (rest or save)', act: () => openCrystal(c) });
@@ -142,8 +143,10 @@ export function buildRegion1() {
 
   setLevel({
     spawnFor: c => (!c || c === R.hubCrystal ? { x: HUB_SPAWN.x, z: HUB_SPAWN.z } : { x: c.x + 1.4, z: c.z + 1.2 }),
-    onReset() { if (!save.shortcut) P.setGate(R.arenaN, true); },
-    onRespawn() { loop.start = null; },
+    onReset() {
+      if (!save.shortcut) P.setGate(R.arenaN, true);
+      if (save.defeated.gatekeeper) revealAltar(R.bossAltar); // its reward altar stays once earned
+    },
     onEnemyKilled,
     update,
   });
@@ -153,14 +156,14 @@ export function buildRegion1() {
 function onEnemyKilled(e) {
   if (e !== bossRef.e) return;
   S.bossFight = false;
+  e.permaDead = true;
+  save.defeated.gatekeeper = true;
   P.setGate(R.arenaN, true);
   revealAltar(R.bossAltar);
-  if (!save.shortcut) {
-    save.shortcut = true; writeSave();
-    P.setGate(R.arenaE, true); P.setGate(R.hubGate, true);
-    sfx.gate();
-    showMsg('THE WAY HOME OPENS', 'the return passage is unbarred · it will stay open', '#e8c070', 3.5);
-  } else showMsg('GATEKEEPER FELLED', '', '#e8c070', 2.2);
+  if (!save.shortcut) { save.shortcut = true; P.setGate(R.arenaE, true); P.setGate(R.hubGate, true); }
+  writeSave();
+  sfx.gate();
+  showMsg('THE GATEKEEPER FALLS', 'the return passage is unbarred · it will stay open', '#e8c070', 3.5);
 }
 
 function update() {
@@ -171,18 +174,6 @@ function update() {
     hero.carried += 12; save.secret = true; writeSave();
     dmgNum(10, 1.4, 13, '+12', 'gain');
     showMsg('A HIDDEN CACHE', '+12 embers · save at a crystal to keep them', '#ffb050', 2.6);
-  }
-  // loop timer: starts in the hall, completes when entering the hub from the return passage
-  const inHub = inRoom('hub', hero.pos);
-  if (loop.start === null && inRoom('hall', hero.pos)) loop.start = S.clock;
-  if (loop.start !== null && inHub) {
-    if (hero.prev.x < -8 && hero.pos.x >= -8) {
-      const t = S.clock - loop.start, best = !save.bestLoop || t < save.bestLoop;
-      if (best) { save.bestLoop = t; writeSave(); }
-      sfx.loop();
-      showMsg('LOOP COMPLETE', fmtTime(t) + (best ? ' · new best' : '') + ' · save at a crystal to bank your embers', '#e8c070', 3.5);
-    }
-    loop.start = null;
   }
   // boss arena: entering starts the fight; the first time, the door locks behind you
   const boss = bossRef.e;

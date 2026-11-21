@@ -16,6 +16,8 @@ import { buildHuskBody, idleCommon, stepForward, inCone } from './common.js';
 export function makeGatekeeper(x, z, f, arenaRoom) {
   const e = enemyBase('boss', x, z, f, GK);
   e.name = 'THE GATEKEEPER';
+  e.bossId = 'gatekeeper';
+  e.permaDead = !!save.defeated.gatekeeper; // bosses never come back once beaten
   e.arenaRoom = arenaRoom;
   buildHuskBody(e, { skin: 0x8a8070, rag: 0x3a2a2a, head: 0x6a6a70, darkSkin: 0x4a4038, armored: true });
   e.baseScale = 1.7; e.model.scale.setScalar(1.7);

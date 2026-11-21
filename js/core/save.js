@@ -7,7 +7,7 @@ export const save = {
   banked: 0,      // embers safely stored
   shortcut: false,// Region 1 return passage opened
   secret: false,  // hidden cache collected
-  bestLoop: 0,    // fastest loop time (seconds)
+  defeated: {},   // permanently defeated bosses, by id
   wlvl: 0,        // sweep blade upgrade level
   flasks: 1,      // flasks carried at last save
 };
@@ -20,6 +20,9 @@ export const settings = {
 };
 
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || 'null') || {}); } catch (_) {}
+// older saves: opening the shortcut meant the Gatekeeper had been beaten
+if (save.shortcut && !save.defeated.gatekeeper) save.defeated.gatekeeper = true;
+delete save.bestLoop;
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY) || '{}')); } catch (_) {}
 
 export function writeSave() {

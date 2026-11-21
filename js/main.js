@@ -38,7 +38,7 @@ function start() {
   initAudio();
   document.getElementById('overlay').style.display = 'none';
   S.started = true;
-  showHint(save.shortcut ? 'The return passage stands open. Run the loop.' : 'Head north through the hall. Find the way around.', 6);
+  showHint(save.shortcut ? 'The return passage stands open.' : 'Head north through the hall. Find the way around.', 6);
 }
 startBtn.addEventListener('click', start);
 document.getElementById('resetBtn').addEventListener('click', () => { eraseSave(); location.reload(); });

@@ -1,8 +1,7 @@
-// Heads-up display: bars, embers, flasks, blade level, boons, loop timer, boss bar
+// Heads-up display: bars, embers, flasks, blade level, boons, boss bar
 // and the interaction prompt.
 import { S } from '../core/state.js';
 import { save } from '../core/save.js';
-import { fmtTime } from '../core/util.js';
 import { FLASK, HERO } from '../data/tuning.js';
 import { BOONS } from '../data/boons.js';
 import { hero } from '../entities/hero.js';
@@ -15,13 +14,10 @@ const $ = id => document.getElementById(id);
 const el = {
   hp: document.querySelector('#hp>i'), st: document.querySelector('#st>i'),
   banked: $('banked'), carried: $('carried'), flasks: $('flasks'), wlvl: $('wlvl'), boons: $('boons'),
-  vig: $('vig'), act: $('actBtn'), timer: $('timer'),
+  vig: $('vig'), act: $('actBtn'),
   boss: $('boss'), bossName: document.querySelector('#boss .n'), bossBar: document.querySelector('#boss .bar>i'),
 };
 let flasksKey = '';
-
-/** Loop timer shown top-right. The level sets `loop.start` (game-clock seconds) or null. */
-export const loop = { start: null };
 
 export function renderBoons() {
   el.boons.innerHTML = [...hero.boons].map(id => '<div>◈ ' + BOONS.find(b => b.id === id).name + '</div>').join('');
@@ -47,8 +43,6 @@ export function updateHUD(dt) {
   if (!updateMessages(dt)) {
     setPrompt(it ? (S.isTouch && !S.padActive ? '' : btnLabel('interact') + ': ') + (it.prompt || it.label) : '');
   }
-
-  el.timer.textContent = (loop.start !== null ? 'LOOP ' + fmtTime(S.clock - loop.start) : '') + (save.bestLoop ? '  ·  BEST ' + fmtTime(save.bestLoop) : '');
 
   const b = bossRef.e;
   const showBoss = b && b.state !== 'dead' && b.state !== 'idle' && !hero.dead;
