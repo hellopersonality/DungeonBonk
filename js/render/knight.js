@@ -1,13 +1,16 @@
-// The hero's sprite sheet: assets/sprites/knight.png, cut from the knight concept sheet by
-// tools/cut_knight.py. 64x48 cells, feet at (32, 45). Rows: one block of 4 directions
+// The hero's sprite sheet: assets/sprites/knight.png, cut from the knight concept sheets in
+// assets/source/ by tools/cut_knight.py. 64x52 cells, feet at (32, 50). Rows: one block of 4 directions
 // (down = facing the camera, left, up = facing away, right) per animation.
-const CW = 64, CH = 48;
+const CW = 64, CH = 52;
 const DIR_ROW = { down: 0, left: 1, up: 2, right: 3 };
 export const KNIGHT_ANIMS = {
   walk: { row: 0, frames: 6 },
   attack: { row: 4, frames: 6 },
   hurt: { row: 8, frames: 3 },
   death: { row: 12, frames: 4 },
+  idle: { row: 16, frames: 4 },
+  dash: { row: 20, frames: 6 },
+  drink: { row: 24, frames: 6 },
 };
 
 const img = new Image();
