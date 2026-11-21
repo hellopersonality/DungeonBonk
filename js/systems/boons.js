@@ -1,18 +1,15 @@
-// Boons: altars that offer them, the active set, and their visual effects
+// Boons: the active set (chosen at level-ups) and their visual effects
 // (crescent waves, ember trails, corpse bursts).
 import { S } from '../core/state.js';
 import { av, sfx } from '../core/audio.js';
 import { BOON_FX } from '../data/boons.js';
 import { scene } from '../render/renderer.js';
 import { maskMat } from '../render/visibility.js';
-import { MAT } from '../render/textures.js';
 import { boxM, circleGeo, sectorGeo, camBlocked } from '../world/geometry.js';
 import { V3 } from '../core/util.js';
 import { hero, weapon, refreshReach } from '../entities/hero.js';
 import { enemies } from '../entities/enemies/registry.js';
 import { dealDamage } from './combat.js';
-import { addInteract } from './interact.js';
-import { openChoice } from '../ui/choice.js';
 import { renderBoons } from '../ui/hud.js';
 import { showHint } from '../ui/messages.js';
 
@@ -27,44 +24,6 @@ export function clearBoons(reason) {
   if (hero.boons.size && reason) showHint(reason, 3);
   hero.boons.clear(); hero.riposte = false;
   renderBoons(); refreshReach();
-}
-
-// ---------- altars ----------
-const altars = [];
-export const runeMats = {
-  core: new THREE.MeshBasicMaterial({ color: 0xb070ff }),
-  glow: new THREE.MeshBasicMaterial({ color: 0x8040d0, transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending }),
-};
-
-/** An altar offering `offer` boons. `hidden` altars appear later (boss reward). */
-export function makeAltar(x, z, offer, hidden) {
-  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
-  boxM(1.0, 0.2, 1.0, MAT.stone, 0, 0.1, 0, g);
-  boxM(0.6, 0.8, 0.6, MAT.stone, 0, 0.6, 0, g);
-  boxM(0.85, 0.12, 0.85, MAT.stone, 0, 1.06, 0, g);
-  [[0.31, 0], [-0.31, 0], [0, 0.31], [0, -0.31]].forEach(([a, b]) => boxM(a ? 0.02 : 0.3, 0.06, a ? 0.3 : 0.02, runeMats.core, a, 0.6, b, g));
-  const rune = new THREE.Group(); rune.position.y = 1.6; g.add(rune);
-  rune.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), runeMats.core));
-  rune.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.5, 0), runeMats.glow));
-  const a = { g, rune, x, z, offer, used: false, hidden: !!hidden, reveal: !!hidden };
-  g.visible = !hidden;
-  altars.push(a);
-  addInteract({ x, z, r: 2, label: 'Altar', cond: () => !a.used && !a.hidden, act: () => openChoice(a) });
-  return a;
-}
-
-export function revealAltar(a) { a.hidden = false; a.g.visible = true; a.used = false; a.rune.visible = true; }
-export function useAltar(a) { a.used = true; a.rune.visible = false; }
-
-export function resetAltars() {
-  for (const a of altars) {
-    a.used = false; a.rune.visible = true;
-    if (a.reveal) { a.hidden = true; a.g.visible = false; }
-  }
-}
-
-export function updateAltars(now, dt) {
-  for (const a of altars) { a.rune.rotation.y += dt * 1.5; a.rune.position.y = 1.6 + Math.sin(now * 0.003 + a.x) * 0.1; }
 }
 
 // ---------- effects ----------

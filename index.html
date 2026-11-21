@@ -12,7 +12,7 @@
 <div id="hud">
   <div class="bar" id="hp"><i style="width:100%"></i></div>
   <div class="bar" id="st"><i style="width:100%"></i></div>
-  <div id="emb">Embers <b id="banked">0</b> banked · <b id="carried">0</b> carried</div>
+  <div id="xp"><span id="lvl">LV 1</span><div class="bar"><i style="width:0%"></i></div></div>
   <div id="flasks"></div>
   <div id="wlvl"></div>
   <div id="boons"></div>
@@ -23,9 +23,8 @@
 <div id="stickBase"><div id="stickKnob"></div></div>
 <button class="tbtn" id="dodgeBtn">DASH</button>
 <button class="tbtn" id="healBtn">HEAL</button>
-<div id="forge"><div class="panel"></div></div>
 <div id="pause"><div class="panel"><h3>PAUSED</h3><div id="pauseOpts"></div><div class="help" id="pauseHelp"></div></div></div>
-<div id="choice"><h3>AN ALTAR STIRS</h3><div class="sub">choose one boon · it lasts until you rest or fall</div><div class="cards"></div><button class="skip">LEAVE IT (Esc)</button></div>
+<div id="choice"><h3>LEVEL UP</h3><div class="sub">choose one · it lasts until you fall</div><div class="cards"></div><button class="skip">SKIP (Esc)</button></div>
 <button class="tbtn" id="actBtn">REST</button>
 
 <div id="overlay">
@@ -33,8 +32,7 @@
   <h2>PROTOTYPE · REGION 1</h2>
   <p>Leave the hub, push through the hall, the corridor and the cistern, defeat <b>the Gatekeeper</b>, and take the barred passage home. That passage only opens from the far side.</p>
   <p>Your blade swings on its own at anything inside its <b>reach arc</b>. Red shapes on the floor are incoming attacks: dash out before they fill. You can't be hurt mid-dash. Strike foes while they <b>recover</b> for critical hits.</p>
-  <p><b>Altars</b> offer boons that change how you fight. They last until you rest or fall.</p>
-  <p>At a crystal you can <b>Rest</b> (restore health, but the dungeon resets and your boons fade) or <b>Save</b> (bank carried embers and set your return point, keeping your boons). If you die, you lose carried embers and boons and wake at your last save.</p>
+  <p>Slain foes drop <b>embers</b> that fill your level bar. Each level lets you pick a <b>boon</b> that changes how you fight or an <b>upgrade</b> for your blade (or skip). If you fall, the run ends: you lose your levels, boons and upgrades and start again from the hub. Defeated bosses and opened passages stay that way.</p>
   <p style="margin-top:10px"><kbd>WASD</kbd> move · <kbd>Mouse</kbd> camera (click to lock) · <kbd>Space</kbd>/<kbd>Shift</kbd> dash · <kbd>Q</kbd> drink flask · <kbd>E</kbd> interact · <kbd>←→↑↓</kbd> camera · <kbd>P</kbd> low-res · <kbd>M</kbd> mute</p>
   <p class="c">Controller: left stick move · right stick camera · <b>A</b> dash · <b>X</b> interact · <b>Y</b> drink · <b>Start</b> pause</p>
   <p class="c">Touch: left side moves · drag the right side to move the camera · buttons dash, heal and interact</p>

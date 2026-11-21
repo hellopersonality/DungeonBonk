@@ -1,11 +1,8 @@
-// List menus: the pause menu (settings) and the crystal menu (rest / save).
-// Both share one panel; each opens with its own list of items.
+// List menu: the pause menu (settings).
 import { S, releaseKeys, exitPointerLock } from '../core/state.js';
 import { clamp } from '../core/util.js';
 import { settings, saveSettings } from '../core/save.js';
 import { sfx } from '../core/audio.js';
-import { hero } from '../entities/hero.js';
-import { rest, saveAt } from '../systems/world.js';
 
 const root = document.getElementById('pause');
 const title = root.querySelector('h3');
@@ -63,15 +60,6 @@ function open(name, items, helpFn) {
 }
 
 export const openPause = () => open('PAUSED', PAUSE_ITEMS, PAUSE_HELP);
-
-export function openCrystal(c) {
-  open(c.name.toUpperCase() + ' CRYSTAL', [
-    { label: () => 'Rest <b>restore health</b>', act: () => { closeMenu(); rest(c); } },
-    { label: () => 'Save <b>' + (hero.carried ? 'bank ' + hero.carried + ' embers' : 'save progress') + '</b>', act: () => { closeMenu(); saveAt(c); } },
-    { label: () => 'Leave', act: () => closeMenu() },
-  ], () => '<b>Rest</b> restores health, but the dungeon resets: enemies, flasks and altars return and your boons fade.<br><b>Save</b> banks carried embers and makes this crystal your return point. No healing, and your boons stay.');
-  sfx.ui();
-}
 
 export function closeMenu() {
   state.open = false; S.paused = false;

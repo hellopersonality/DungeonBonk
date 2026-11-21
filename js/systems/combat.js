@@ -1,4 +1,5 @@
 // Damage in both directions: hero → enemy (with crits, stagger, boons) and enemy → hero.
+import { run } from './leveling.js';
 import { S } from '../core/state.js';
 import { sfx } from '../core/audio.js';
 import { BOON_FX } from '../data/boons.js';
@@ -80,6 +81,6 @@ export function hurtHero(dmg, fromX, fromZ) {
   if (hero.hp <= 0) {
     hero.hp = 0; hero.dead = true; hero.deadT = 0;
     sfx.death();
-    showMsg('YOU FELL', hero.carried ? hero.carried + ' carried embers lost' : '', '#c0392b', 2.4);
+    showMsg('YOU FELL', 'the run ends at level ' + run.level, '#c0392b', 2.4);
   }
 }

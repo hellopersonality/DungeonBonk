@@ -12,7 +12,9 @@ import { hero, initHero, updateHero, updateHeroVisuals } from './entities/hero.j
 import { enemies, bossRef, updateEnemies, updateEnemySprites } from './entities/enemies/registry.js';
 import { updateProjectiles, spitMat } from './entities/enemies/spitter.js';
 import { updateEmbers, updateFlasks, emberMat, flaskMats } from './systems/pickups.js';
-import { updateBoonFx, updateAltars, runeMats } from './systems/boons.js';
+import { updateBoonFx } from './systems/boons.js';
+import { run } from './systems/leveling.js';
+import { openLevelUp } from './ui/levelup.js';
 import { level } from './systems/world.js';
 import { initInput } from './input/input.js';
 import { pollPad } from './input/gamepad.js';
@@ -27,7 +29,7 @@ const rooms = buildRegion1();
 buildOcc(rooms, solids, b => !b.fade && !b.gate && b.h >= 4.1);
 maskScene(scene);
 // materials created later at runtime share these, so patch them up front
-[spitMat, emberMat, flaskMats.glass, flaskMats.cork, flaskMats.glow, runeMats.core, runeMats.glow].forEach(maskMat);
+[spitMat, emberMat, flaskMats.glass, flaskMats.cork, flaskMats.glow].forEach(maskMat);
 initInput();
 
 // ---------- title screen ----------
@@ -75,8 +77,9 @@ function frame(now) {
     const n = Math.ceil(dt / STEP - 1e-9);
     for (let i = 0; i < n; i++) simulate(dt / n);
   }
+  // a full level bar opens the upgrade window (one at a time; more queue up)
+  if (S.started && run.pending > 0 && !S.paused && !hero.dead) openLevelUp();
   updateProps(now, raw);
-  updateAltars(now, raw);
   updateHeroVisuals(now, raw);
   updateEnemySprites();
   updateCamera(raw);

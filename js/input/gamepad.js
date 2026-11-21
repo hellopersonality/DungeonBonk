@@ -7,8 +7,7 @@ import { CAM } from '../data/tuning.js';
 import { tryDodge, tryDrink } from '../entities/hero.js';
 import { tryInteract } from '../systems/interact.js';
 import { menuOpen, openPause, closeMenu, moveMenu, adjustMenu, activateMenu } from '../ui/menus.js';
-import { choiceOpen, moveChoice, confirmChoice, closeChoice } from '../ui/choice.js';
-import { forgeOpen, moveForge, confirmForge, closeForge } from '../ui/forge.js';
+import { choiceOpen, moveChoice, confirmChoice, skipLevelUp } from '../ui/levelup.js';
 
 export const pad = { x: 0, y: 0 };
 let prev = [], navT = 0;
@@ -63,11 +62,7 @@ export function pollPad(dt, onStart) {
   } else if (choiceOpen()) {
     if (h || v) moveChoice(h || v);
     if (pressed(BTN.A)) confirmChoice();
-    if (pressed(BTN.B)) closeChoice();
-  } else if (forgeOpen()) {
-    if (h || v) moveForge(h || v);
-    if (pressed(BTN.A)) confirmForge();
-    if (pressed(BTN.B)) closeForge();
+    if (pressed(BTN.B)) skipLevelUp();
   } else {
     pad.x = lx; pad.y = ly;
     const sens = settings.padSens;

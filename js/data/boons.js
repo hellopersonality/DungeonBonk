@@ -1,4 +1,4 @@
-// In-run boons offered at altars. Effects are implemented in systems/boons.js and
+// In-run boons offered at level-ups (ui/levelup.js). Effects are implemented in systems/boons.js and
 // wherever `has('<id>')` is checked (hero, combat).
 export const BOONS = [
   { id: 'trail',    name: 'Ember Trail',   desc: 'Dashing leaves a burning trail that scorches enemies standing in it.' },

@@ -1,8 +1,8 @@
 // Heads-up display: bars, embers, flasks, blade level, boons, boss bar
 // and the interaction prompt.
 import { S } from '../core/state.js';
-import { save } from '../core/save.js';
 import { FLASK, HERO } from '../data/tuning.js';
+import { run, xpToNext } from '../systems/leveling.js';
 import { BOONS } from '../data/boons.js';
 import { hero } from '../entities/hero.js';
 import { bossRef } from '../entities/enemies/registry.js';
@@ -13,7 +13,7 @@ import { updateMessages, setPrompt } from './messages.js';
 const $ = id => document.getElementById(id);
 const el = {
   hp: document.querySelector('#hp>i'), st: document.querySelector('#st>i'),
-  banked: $('banked'), carried: $('carried'), flasks: $('flasks'), wlvl: $('wlvl'), boons: $('boons'),
+  xp: document.querySelector('#xp .bar>i'), lvl: $('lvl'), flasks: $('flasks'), wlvl: $('wlvl'), boons: $('boons'),
   vig: $('vig'), act: $('actBtn'),
   boss: $('boss'), bossName: document.querySelector('#boss .n'), bossBar: document.querySelector('#boss .bar>i'),
 };
@@ -32,15 +32,15 @@ export function renderBoons() {
 export function updateHUD(dt) {
   put(el.hp, 'width', (hero.hp / HERO.maxHp * 100).toFixed(1) + '%');
   put(el.st, 'width', hero.st.toFixed(1) + '%');
-  put(el.banked, 'text', String(save.banked));
-  put(el.carried, 'text', String(hero.carried));
+  put(el.lvl, 'text', 'LV ' + run.level);
+  put(el.xp, 'width', (run.pending ? 100 : run.xp / xpToNext() * 100).toFixed(1) + '%');
   const key = hero.flasks + '|' + S.padActive + '|' + S.isTouch;
   if (key !== flasksKey) {
     flasksKey = key;
     const fh = '<span class="f">' + '▮'.repeat(hero.flasks) + '</span><span class="e">' + '▮'.repeat(FLASK.max - hero.flasks) + '</span>';
     el.flasks.innerHTML = 'Flasks ' + fh + (S.isTouch && !S.padActive ? '' : ' <span style="color:#8a7a60;letter-spacing:0">[' + btnLabel('drink') + ']</span>');
   }
-  put(el.wlvl, 'text', 'Sweep Blade +' + save.wlvl);
+  put(el.wlvl, 'text', 'Sweep Blade +' + run.wlvl);
   put(el.vig, 'opacity', (Math.max(0, hero.hurt * 2.2) + (hero.hp < 35 && !hero.dead ? 0.25 + Math.sin(S.clock * 6) * 0.1 : 0)).toFixed(2));
 
   const it = nearestInteract();

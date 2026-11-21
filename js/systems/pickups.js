@@ -1,4 +1,4 @@
-// Embers (currency) and healing flasks lying in the world.
+// Embers (experience: they fill the level bar) and healing flasks lying in the world.
 import { V3, lerp } from '../core/util.js';
 import { sfx } from '../core/audio.js';
 import { FLASK } from '../data/tuning.js';
@@ -8,6 +8,7 @@ import { boxM } from '../world/geometry.js';
 import { hero } from '../entities/hero.js';
 import { dmgNum } from '../ui/numbers.js';
 import { showHint } from '../ui/messages.js';
+import { gainXp } from './leveling.js';
 
 // ---------- embers ----------
 const embers = [];
@@ -33,7 +34,7 @@ export function updateEmbers(dt) {
     p.addScaledVector(em.v, dt);
     if (p.y < 0.25) { p.y = 0.25; em.v.y *= -0.4; em.v.x *= 0.7; em.v.z *= 0.7; }
     em.m.rotation.y += dt * 4;
-    if (d < 0.7 && em.age > 0.5 && !hero.dead) { scene.remove(em.m); embers.splice(i, 1); hero.carried++; sfx.ember(); }
+    if (d < 0.7 && em.age > 0.5 && !hero.dead) { scene.remove(em.m); embers.splice(i, 1); gainXp(1); sfx.ember(); }
   }
 }
 

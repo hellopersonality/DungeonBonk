@@ -1,7 +1,8 @@
 # The Hollow Loop
 
 A third-person dungeon crawler with auto-attacking combat, an interconnected dungeon
-that circles back on itself, permanent boss kills, and boons that last until you rest. Runs in the browser with three.js (r128 from cdnjs).
+that circles back on itself, permanent boss kills, and Megabonk-style leveling: embers fill a level bar, and each
+level offers a choice of boons or blade upgrades that last until you fall. Runs in the browser with three.js (r128 from cdnjs).
 No build step.
 
 ## Run locally
@@ -39,19 +40,21 @@ css/style.css         all UI styling
 js/
   main.js             builds the world, runs the game loop
   core/               no game logic: math helpers, shared state (S), save/settings, synthesized audio
-  data/               tuning only: hero/enemy stats, weapon upgrades, boon list
+  data/               tuning only: hero/enemy stats and ember drops, XP curve, weapon upgrades, boon list
   render/             renderer, procedural textures and themes, orbit camera, line-of-sight shader,
                       billboard sprite system (sprites.js) and placeholder character art (placeholders.js)
   world/              geometry + collision, room builder, props, and region scripts (region1.js)
   entities/           hero, enemies (one module per type + shared registry/AI helpers)
-  systems/            combat, pickups (embers, flasks), boons and altars, world rules (rest/save/death), interactables
-  ui/                 HUD, damage numbers, messages, pause/crystal menus, forge, altar choice
+  systems/            combat, pickups (embers, flasks), leveling (XP bar, run state), boons, world rules (death ends the run), interactables
+  ui/                 HUD, damage numbers, messages, pause menu, level-up window
   input/              keyboard/mouse/touch, gamepad
 ```
 
 ### Where to change things
 
-- **Balance**: `js/data/tuning.js`, `js/data/weapons.js`, `js/data/boons.js`
+- **Balance**: `js/data/tuning.js` (including `XP`, the level curve, and each enemy's `embers`),
+  `js/data/weapons.js`, `js/data/boons.js`. How often a weapon card appears: `WEAPON_CHANCE`
+  in `js/ui/levelup.js`.
 - **A new enemy type**: add `js/entities/enemies/<name>.js` exporting `make<Name>()` and
   `update<Name>()`, then register the updater in `enemies/registry.js`.
 - **A new boon**: add it to `data/boons.js`, then check for it with `has('<id>')` where

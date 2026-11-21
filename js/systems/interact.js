@@ -1,4 +1,4 @@
-// Things the hero can interact with (crystals, forge, altars, examine spots).
+// Things the hero can interact with (examine spots).
 // Each entry: { x, z, r, label, act(), cond?() }
 import { hero } from '../entities/hero.js';
 

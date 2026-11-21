@@ -4,7 +4,7 @@ import { CAM } from '../data/tuning.js';
 
 export const S = {
   started: false,   // title screen dismissed
-  paused: false,    // any menu is open (pause, crystal, forge, altar)
+  paused: false,    // any menu is open (pause, level-up)
   yaw: 0,           // camera orbit angle around the hero (radians)
   pitch: CAM.pitch, // camera pitch (positive looks down), clamped to CAM.pitchMin..pitchMax
   clock: 0,         // game time in seconds (stops while paused)
