@@ -20,11 +20,9 @@ import { makeSkitter } from '../entities/enemies/skitter.js';
 import { makeSpitter } from '../entities/enemies/spitter.js';
 import { makeGatekeeper } from '../entities/enemies/gatekeeper.js';
 import { addFlask } from '../systems/pickups.js';
-import { makeAltar, revealAltar } from '../systems/boons.js';
 import { addInteract } from '../systems/interact.js';
-import { setLevel, progress } from '../systems/world.js';
-import { openCrystal } from '../ui/menus.js';
-import { openForge } from '../ui/forge.js';
+import { setLevel } from '../systems/world.js';
+import { gainXp } from '../systems/leveling.js';
 import { showMsg } from '../ui/messages.js';
 import { dmgNum } from '../ui/numbers.js';
 
@@ -33,7 +31,7 @@ const PI = Math.PI;
 // wall-facing rotations for wall-mounted props (see props.js)
 const FACE = { east: -PI / 2, west: PI / 2, north: PI, south: 0 };
 
-const R = {}; // region references (gates, crystals, boss altar, cache)
+const R = {}; // region references (gates, cache)
 
 export function buildRegion1() {
   const T = THEMES;
@@ -54,7 +52,7 @@ export function buildRegion1() {
   [[-5, 5], [5, 5], [-5, -5]].forEach(([x, z]) => pillar(x, z, 0.6, T.hub));
   P.ceilingBeams(-8, 8, -8, 7, 'x', 3);
   P.rug(0, 0, 5, 5);
-  R.hubCrystal = P.crystal(0, 0, 'Hub'); R.hubCrystal.id = 'hub';
+  P.crystal(0, 0, 'Hub'); // decorative landmarks now (no rest / save)
   P.forge(5, -5.2);
   P.bench(-3, 4, 0); P.bench(3, 4, 0);
   P.barrel(-6.7, -6.7); P.barrel(-5.9, -6.8); P.crate(-6.7, -5.8, 0.7, 0.2);
@@ -78,7 +76,7 @@ export function buildRegion1() {
   const fake = T.hall.wall.clone(); fake.color.setHex(0xe2d6c4);
   makeBox(8, 9, 0, WALL_H, 12, 14, fake, 'cam');
   boxM(0.04, 0.05, 1.9, new THREE.MeshBasicMaterial({ color: 0x7a3a12 }), 7.98, 0.03, 13, scene);
-  if (!save.secret) R.cache = P.emberCache(10, 13);
+  R.cache = P.emberCache(10, 13); // a per-run bonus: back every run
   P.roots(9.5, 14, 3);
 
   // ---------- corridor: rough-hewn tunnel ----------
@@ -95,7 +93,7 @@ export function buildRegion1() {
   P.barrel(-27.1, 33.1); P.barrel(-27.9, 33.2); P.crate(-39.1, 26.5, 0.6, 0.3);
   P.sigilDoor(-33.4, 33.96, FACE.north);
   P.torch(-39.95, 22, FACE.west, 'witch'); P.torch(-26.05, 31, FACE.east, 'witch');
-  R.cisternCrystal = P.crystal(-29, 17, 'Cistern'); R.cisternCrystal.id = 'cistern';
+  P.crystal(-29, 17, 'Cistern');
 
   // ---------- passage ----------
   P.rubble(-34.5, 12, 3, 0.3); P.roots(-33.4, 12, 2);
@@ -126,34 +124,23 @@ export function buildRegion1() {
 
   // ---------- items ----------
   [[6.2, 10.4], [-20, 23.6], [-39, 33], [-27.5, 33], [-19, 0.9]].forEach(([x, z]) => addFlask(x, z, false));
-  makeAltar(6.2, 26.2, 2);
-  makeAltar(-38.6, 15.4, 2);
-  R.bossAltar = makeAltar(-33, -6.5, 3, true);
-  if (save.defeated.gatekeeper) revealAltar(R.bossAltar);
 
   // ---------- interactables ----------
-  for (const c of [R.hubCrystal, R.cisternCrystal]) addInteract({ x: c.x, z: c.z, r: 2.3, label: 'Crystal', prompt: 'Crystal (rest or save)', act: () => openCrystal(c) });
-  addInteract({ x: 5, z: -3.8, r: 2, label: 'Forge', act: openForge });
   addInteract({ x: -33.4, z: 32.6, r: 2.4, label: 'Examine', act: () => showMsg('SEALED', 'a sigil is carved here. you have none.', '#a070e0', 2.4) });
   addInteract({ x: -2.4, z: 18, r: 2.2, label: 'Examine', act: () => showMsg('OUT OF REACH', 'something glints on the ledge above', '#e8c070', 2.4) });
   addInteract({ x: -7, z: 0, r: 2.2, label: 'Examine', cond: () => !save.shortcut, act: () => showMsg('BARRED', 'it will not open from this side', '#e8c070', 2.4) });
 
-  // start at the crystal last saved at (old saves and unknown ids fall back to the Hub)
-  const spawnFor = c => (!c || c === R.hubCrystal ? { x: HUB_SPAWN.x, z: HUB_SPAWN.z } : { x: c.x + 1.4, z: c.z + 1.2 });
-  progress.lastCrystal = [R.hubCrystal, R.cisternCrystal].find(c => c.id === save.checkpoint) || R.hubCrystal;
-  const sp = spawnFor(progress.lastCrystal);
-  hero.pos.set(sp.x, 0, sp.z); hero.prev.copy(hero.pos);
+  // every run starts in the Hub
+  hero.pos.copy(HUB_SPAWN); hero.prev.copy(HUB_SPAWN);
 
   setLevel({
-    spawnFor,
+    spawn: () => ({ x: HUB_SPAWN.x, z: HUB_SPAWN.z }),
     onReset() {
       if (!save.shortcut) P.setGate(R.arenaN, true);
-      if (save.defeated.gatekeeper) revealAltar(R.bossAltar); // its reward altar stays once earned
+      R.cache.visible = true; R.cacheTaken = false;
     },
     onEnemyKilled,
     update,
-    onSave() { if (R.cacheHeld) { save.secret = true; scene.remove(R.cache); R.cache = null; R.cacheHeld = false; } },
-    onRespawn() { if (R.cacheHeld) { R.cache.visible = true; R.cacheHeld = false; } },
   });
   return rooms;
 }
@@ -164,7 +151,6 @@ function onEnemyKilled(e) {
   e.permaDead = true;
   save.defeated.gatekeeper = true;
   P.setGate(R.arenaN, true);
-  revealAltar(R.bossAltar);
   if (!save.shortcut) { save.shortcut = true; P.setGate(R.arenaE, true); P.setGate(R.hubGate, true); }
   writeSave();
   sfx.gate();
@@ -174,12 +160,11 @@ function onEnemyKilled(e) {
 function update() {
   if (hero.dead) return;
   // secret cache behind the illusory wall
-  // (it only counts as taken once its embers are banked; die first and it comes back)
-  if (R.cache && !R.cacheHeld && Math.hypot(hero.pos.x - 10, hero.pos.z - 13) < 1.1) {
-    R.cache.visible = false; R.cacheHeld = true;
-    hero.carried += 12;
+  if (!R.cacheTaken && Math.hypot(hero.pos.x - 10, hero.pos.z - 13) < 1.1) {
+    R.cache.visible = false; R.cacheTaken = true;
+    gainXp(12);
     dmgNum(10, 1.4, 13, '+12', 'gain');
-    showMsg('A HIDDEN CACHE', '+12 embers · save at a crystal to keep them', '#ffb050', 2.6);
+    showMsg('A HIDDEN CACHE', '+12 embers', '#ffb050', 2.6);
   }
   // boss arena: entering starts the fight; the first time, the door locks behind you
   const boss = bossRef.e;

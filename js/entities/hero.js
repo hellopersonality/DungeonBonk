@@ -1,7 +1,6 @@
 // The hero: data, model, movement, dash, drinking and the auto-attacking sweep blade.
 import { V3, lerp, angDiff, turnTo } from '../core/util.js';
 import { S } from '../core/state.js';
-import { save } from '../core/save.js';
 import { sfx } from '../core/audio.js';
 import { HERO, DASH, FLASK } from '../data/tuning.js';
 import { weaponStats, SWING_T, BLADE_GLOW } from '../data/weapons.js';
@@ -14,6 +13,7 @@ import { enemies } from './enemies/registry.js';
 import { hitEnemy } from '../systems/combat.js';
 import { has, spawnWave, spawnTrail } from '../systems/boons.js';
 import { respawn } from '../systems/world.js';
+import { run } from '../systems/leveling.js';
 import { moveInput } from '../input/input.js';
 import { dmgNum } from '../ui/numbers.js';
 import { showHint } from '../ui/messages.js';
@@ -25,13 +25,13 @@ export const hero = {
   roll: 0, rollDir: new V3(), iframes: 0,
   atkCd: 0, swingT: 0, swingAnim: 0, swings: 0,
   hurt: 0, dead: false, deadT: 0, walk: 0,
-  carried: 0, flasks: save.flasks,
+  flasks: FLASK.start,
   drinkT: 0, drinkDone: false,
   boons: new Set(), riposte: false, trailT: 0,
 };
 
 /** Current sweep blade stats (updated by applyWeapon). */
-export const weapon = { s: weaponStats(save.wlvl), glow: 0 };
+export const weapon = { s: weaponStats(0), glow: 0 };
 
 /** Sprite swing animation length (s); the hit itself lands instantly. Keep below the weapon cooldown. */
 const SWING_ANIM = 0.3;
@@ -63,9 +63,9 @@ export function initHero() {
 
 /** Re-read the upgrade level and rebuild blade length/glow and reach shapes. */
 export function applyWeapon() {
-  weapon.s = weaponStats(save.wlvl);
-  weapon.glow = BLADE_GLOW[save.wlvl] || 0;
-  rig.swing.material.color.setHex(save.wlvl >= 5 ? 0xffb060 : 0xfff4d0);
+  weapon.s = weaponStats(run.wlvl);
+  weapon.glow = BLADE_GLOW[run.wlvl] || 0;
+  rig.swing.material.color.setHex(run.wlvl >= 5 ? 0xffb060 : 0xfff4d0);
   rig.actor.key = null; // the sprite's blade changes with the upgrade level
   refreshReach();
 }

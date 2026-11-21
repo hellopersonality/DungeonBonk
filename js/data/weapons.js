@@ -1,12 +1,12 @@
-// Weapon tuning. The forge reads UPGRADES; combat reads weaponStats(level).
+// Weapon tuning. Level-ups offer UPGRADES in order; combat reads weaponStats(level).
 export const SWING_T = 0.16; // swing animation length (s)
 
 export const UPGRADES = [
-  { cost: 10,  name: 'Honed Edge',     desc: 'A keener edge.' },
-  { cost: 25,  name: 'Balanced Hilt',  desc: 'The blade comes around faster.' },
-  { cost: 45,  name: 'Tempered Steel', desc: 'Heavier, harder blows.' },
-  { cost: 70,  name: 'Long Blade',     desc: 'Longer reach and a wider sweep.' },
-  { cost: 100, name: 'Ember-Forged',   desc: 'Burns with stored embers. Punishing strikes cut deeper.' },
+  { name: 'Honed Edge',     desc: 'A keener edge.' },
+  { name: 'Balanced Hilt',  desc: 'The blade comes around faster.' },
+  { name: 'Tempered Steel', desc: 'Heavier, harder blows.' },
+  { name: 'Long Blade',     desc: 'Longer reach and a wider sweep.' },
+  { name: 'Ember-Forged',   desc: 'Burns with stored embers. Punishing strikes cut deeper.' },
 ];
 
 /** Sweep Blade stats at a given upgrade level. */

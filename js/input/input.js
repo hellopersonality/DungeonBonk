@@ -8,8 +8,7 @@ import { pad } from './gamepad.js';
 import { tryDodge, tryDrink } from '../entities/hero.js';
 import { tryInteract } from '../systems/interact.js';
 import { menuOpen, openPause, closeMenu } from '../ui/menus.js';
-import { choiceOpen, pickBoon, closeChoice } from '../ui/choice.js';
-import { forgeOpen, closeForge } from '../ui/forge.js';
+import { choiceOpen, pickOffer, skipLevelUp } from '../ui/levelup.js';
 import { showHint } from '../ui/messages.js';
 
 const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
@@ -47,13 +46,12 @@ function onKeyDown(e) {
   if (!S.started) return;
   if (menuOpen()) { if (e.code === 'Escape') closeMenu(); return; }
   if (choiceOpen()) {
-    if (e.code === 'Digit1') pickBoon(0);
-    if (e.code === 'Digit2') pickBoon(1);
-    if (e.code === 'Digit3') pickBoon(2);
-    if (e.code === 'Escape') closeChoice();
+    if (e.code === 'Digit1') pickOffer(0);
+    if (e.code === 'Digit2') pickOffer(1);
+    if (e.code === 'Digit3') pickOffer(2);
+    if (e.code === 'Escape') skipLevelUp();
     return;
   }
-  if (forgeOpen()) { if (e.code === 'Escape' || e.code === 'KeyE') closeForge(); return; }
   if (e.code === 'Escape') { openPause(); return; }
   S.padActive = false;
   if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') { tryDodge(); e.preventDefault(); }
