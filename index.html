@@ -39,11 +39,28 @@
   <p class="c">Controller: left stick move · right stick camera · <b>A</b> dash · <b>X</b> interact · <b>Y</b> drink · <b>Start</b> pause</p>
   <p class="c">Touch: left side moves · drag the right side to move the camera · buttons dash, heal and interact</p>
   <p class="c"><kbd>Esc</kbd> / <b>Start</b> opens the pause menu (invert Y, camera sensitivity)</p>
-  <div><button id="startBtn">ENTER</button></div>
+  <div><button id="startBtn" disabled>LOADING…</button></div>
+  <div id="bootErr" style="display:none"></div>
   <div><button id="resetBtn" class="small">ERASE SAVE</button></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Boot guard: if anything fails before the game finishes loading (three.js missing, no WebGL,
+// a script error), show why on the title screen and offer a retry instead of a dead button.
+window.__bootFail = function (msg) {
+  if (window.__booted) return;
+  var b = document.getElementById('startBtn'); b.disabled = true; b.textContent = 'COULD NOT START';
+  var e = document.getElementById('bootErr'); e.style.display = 'block';
+  e.innerHTML = '<p>' + msg + '</p><button class="small" onclick="location.reload()">RETRY</button>';
+};
+window.addEventListener('error', function (ev) {
+  var m = String(ev.message || (ev.error && ev.error.message) || '');
+  window.__bootFail(/webgl/i.test(m)
+    ? 'Your browser could not start WebGL, which the game needs. Turn on hardware acceleration in your browser settings, update your browser or graphics drivers, or try another browser.'
+    : 'Something went wrong while loading (' + (m || 'unknown error') + '). Check your connection and try again.');
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="__bootFail('Could not download the 3D engine (three.js). Check your connection and try again.')"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

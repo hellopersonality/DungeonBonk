@@ -32,9 +32,12 @@ initInput();
 
 // ---------- title screen ----------
 const startBtn = document.getElementById('startBtn');
-if (hasProgress()) startBtn.textContent = 'CONTINUE';
+startBtn.disabled = false; // stays disabled (LOADING…) until everything above has built
+startBtn.textContent = hasProgress() ? 'CONTINUE' : 'ENTER';
+window.__booted = true;
+document.getElementById('bootErr').style.display = 'none'; // a stray error before boot finished wasn't fatal
 function start() {
-  if (S.started) return;
+  if (S.started || !window.__booted) return;
   initAudio();
   document.getElementById('overlay').style.display = 'none';
   S.started = true;
@@ -44,24 +47,33 @@ startBtn.addEventListener('click', start);
 document.getElementById('resetBtn').addEventListener('click', () => { eraseSave(); location.reload(); });
 
 // ---------- loop ----------
+// The simulation advances in steps of at most STEP seconds, so a slow frame runs several
+// steps instead of slowing game time. Past MAX_STEPS per frame (a stall, a background tab)
+// the extra time is dropped rather than fast-forwarded.
+const STEP = 0.05, MAX_STEPS = 5;
 let last = performance.now();
+function simulate(dt) {
+  S.clock += dt;
+  updateFlasks(dt);
+  updateHero(dt);
+  level.update && level.update(dt);
+  updateEnemies(dt);
+  updateProjectiles(dt);
+  updateEmbers(dt);
+  updateBoonFx(dt);
+}
 function frame(now) {
   requestAnimationFrame(frame);
-  const raw = Math.min(0.05, (now - last) / 1000); last = now;
-  let dt = raw;
+  const elapsed = Math.min(STEP * MAX_STEPS, Math.max(0, (now - last) / 1000)); last = now;
+  const raw = Math.min(STEP, elapsed); // visual-only timers
   pollPad(raw, start);
-  if (S.hitstop > 0) { S.hitstop -= raw; dt = 0; }
-  if (S.shake > 0) S.shake = Math.max(0, S.shake - raw * 1.2);
+  let dt = elapsed;
+  if (S.hitstop > 0) { const h = Math.min(S.hitstop, dt); S.hitstop -= h; dt -= h; }
+  if (S.shake > 0) S.shake = Math.max(0, S.shake - elapsed * 1.2);
 
   if (S.started && dt > 0 && !S.paused) {
-    S.clock += dt;
-    updateFlasks(dt);
-    updateHero(dt);
-    level.update && level.update(dt);
-    updateEnemies(dt);
-    updateProjectiles(dt);
-    updateEmbers(dt);
-    updateBoonFx(dt);
+    const n = Math.ceil(dt / STEP - 1e-9);
+    for (let i = 0; i < n; i++) simulate(dt / n);
   }
   updateProps(now, raw);
   updateAltars(now, raw);

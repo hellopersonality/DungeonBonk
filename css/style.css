@@ -65,6 +65,9 @@ canvas{display:block}
 #overlay p{max-width:500px;text-align:left;line-height:1.7;font-size:13px;margin:2px 20px}
 #overlay p.c{text-align:center;color:#a89878;margin-top:12px}
 #overlay button{margin:20px 6px 0;font:inherit;font-size:15px;padding:10px 26px;background:#2a2018;color:#e8dcc0;border:2px solid #7a5c34;cursor:pointer;letter-spacing:3px}
+#overlay button:disabled{opacity:.55;cursor:default}
+#bootErr{max-width:520px;margin:14px auto 0;color:#e8a080;font-size:14px;line-height:1.5}
+#bootErr button{margin-top:10px}
 #overlay button:hover{background:#3a2c1e}
 #overlay button.small{font-size:11px;padding:6px 14px;border-color:#4a3a28;color:#a89878}
 kbd{background:#2a2018;border:1px solid #5a4630;padding:0 5px;border-radius:2px}
