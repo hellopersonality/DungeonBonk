@@ -1,5 +1,5 @@
-// The hero's sprite sheet: assets/sprites/knight.png, cut from the knight concept sheets in
-// assets/source/ by tools/cut_knight.py. 64x52 cells, feet at (32, 50). Rows: one block of 4 directions
+// The hero's sprite sheet: assets/sprites/knight.png, cut from the master sheet
+// assets/source/knight_master.png by tools/cut_knight.py. 64x52 cells, feet at (32, 50). Rows: one block of 4 directions
 // (down = facing the camera, left, up = facing away, right) per animation.
 const CW = 64, CH = 52;
 const DIR_ROW = { down: 0, left: 1, up: 2, right: 3 };
