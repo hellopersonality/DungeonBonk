@@ -13,6 +13,7 @@ const RES = 4; // wall-map cells per world unit
 export const maskU = {
   uOcc: { value: null },
   uOccRect: { value: new THREE.Vector4() },
+  uOccSize: { value: new THREE.Vector2(1, 1) },
   uHero: { value: new THREE.Vector2() },
 };
 let occ = null; // {data, tex, x0, z0, w, h}
@@ -20,15 +21,30 @@ let occ = null; // {data, tex, x0, z0, w, h}
 const bg = new THREE.Color(BG);
 const BG_GLSL = `vec3(${bg.r.toFixed(4)},${bg.g.toFixed(4)},${bg.b.toFixed(4)})`;
 
-const MASK_HEAD = `varying vec3 vWPos;
-uniform sampler2D uOcc;uniform vec4 uOccRect;uniform vec2 uHero;
-float occAt(vec2 p){vec2 uv=(p-uOccRect.xy)/uOccRect.zw;if(uv.x<0.0||uv.y<0.0||uv.x>1.0||uv.y>1.0)return 1.0;return texture2D(uOcc,uv).r;}
+const MASK_HEAD = `varying vec3 vWPos;varying vec3 vWNrm;
+uniform sampler2D uOcc;uniform vec4 uOccRect;uniform vec2 uOccSize;uniform vec2 uHero;
+float occCell(ivec2 c){
+  if(c.x<0||c.y<0||c.x>=int(uOccSize.x)||c.y>=int(uOccSize.y))return 1.0;
+  return texture2D(uOcc,(vec2(c)+0.5)/uOccSize).r;
+}
+// Exact grid traversal (Amanatides-Woo) from o to p across the wall map. Cells are
+// visited in order, so the result can't flicker as the hero moves by small amounts.
 float rayVis(vec2 o,vec2 p){
-  vec2 d=p-o;float L=length(d);if(L<0.4)return 1.0;
-  vec2 dir=d/L;float stop=L-0.4;bool started=occAt(o)<0.5;
-  for(int i=0;i<110;i++){
-    float t=float(i)*0.28;if(t>stop)break;
-    float oc=occAt(o+dir*t);
+  vec2 g0=(o-uOccRect.xy)/uOccRect.zw*uOccSize, g1=(p-uOccRect.xy)/uOccRect.zw*uOccSize;
+  ivec2 c=ivec2(floor(g0)), e=ivec2(floor(g1));
+  vec2 d=g1-g0;
+  ivec2 st=ivec2(d.x>0.0?1:-1,d.y>0.0?1:-1);
+  vec2 ad=max(abs(d),vec2(1e-6));
+  vec2 tD=1.0/ad;
+  vec2 fr=g0-floor(g0);
+  vec2 tM=vec2(d.x>0.0?(1.0-fr.x):fr.x, d.y>0.0?(1.0-fr.y):fr.y)*tD;
+  bool started=occCell(c)<0.5;
+  for(int i=0;i<200;i++){
+    if(c==e)return 1.0;
+    if(min(tM.x,tM.y)>1.0)return 1.0; // walked past the target (float safety)
+    if(tM.x<tM.y){c.x+=st.x;tM.x+=tD.x;}else{c.y+=st.y;tM.y+=tD.y;}
+    if(c==e)return 1.0;               // the target's own cell is never an occluder
+    float oc=occCell(c);
     if(!started){if(oc<0.5)started=true;}
     else if(oc>0.5)return 0.0;
   }
@@ -37,7 +53,8 @@ float rayVis(vec2 o,vec2 p){
 float heroVis(vec2 p){
   vec2 d=p-uHero;float L=length(d);
   if(L>30.0)return 1.0;
-  vec2 n=vec2(-d.y,d.x)/max(L,0.001);
+  if(L<0.3)return 1.0;
+  vec2 n=vec2(-d.y,d.x)/L;
   float c=rayVis(uHero,p);
   float acc=c*0.3;
   vec2 o1=uHero+n*0.45,o2=uHero-n*0.45,o3=uHero+n*1.0,o4=uHero-n*1.0;
@@ -47,6 +64,15 @@ float heroVis(vec2 p){
   acc+=(occAt(o4)<0.5?rayVis(o4,p):c)*0.15;
   return smoothstep(0.0,1.0,acc);
 }
+// Wall faces sit on the boundary of wall cells; test a point just in front of the
+// face (along its normal) so the face is judged from the open side.
+vec2 sightTarget(){
+  vec3 n=normalize(vWNrm);
+  vec2 nh=n.xz;float l=length(nh);
+  return l>0.6?vWPos.xz+nh/l*0.3:vWPos.xz;
+}
+`;
+const OCC_AT = `float occAt(vec2 p){vec2 uv=(p-uOccRect.xy)/uOccRect.zw;if(uv.x<0.0||uv.y<0.0||uv.x>1.0||uv.y>1.0)return 1.0;return texture2D(uOcc,uv).r;}
 `;
 
 /** Patch a material so it respects hero line-of-sight and the camera cut-away. */
@@ -57,12 +83,13 @@ export function maskMat(m) {
   m.onBeforeCompile = sh => {
     sh.uniforms.uOcc = maskU.uOcc;
     sh.uniforms.uOccRect = maskU.uOccRect;
+    sh.uniforms.uOccSize = maskU.uOccSize;
     sh.uniforms.uHero = maskU.uHero;
-    sh.vertexShader = 'varying vec3 vWPos;\n' + sh.vertexShader.replace(
+    sh.vertexShader = 'varying vec3 vWPos;varying vec3 vWNrm;\n' + sh.vertexShader.replace(
       '#include <begin_vertex>',
-      '#include <begin_vertex>\nvWPos=(modelMatrix*vec4(transformed,1.0)).xyz;');
-    sh.fragmentShader = MASK_HEAD + sh.fragmentShader
-      .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nfloat visF=heroVis(vWPos.xz);')
+      '#include <begin_vertex>\nvWPos=(modelMatrix*vec4(transformed,1.0)).xyz;vWNrm=mat3(modelMatrix)*normal;');
+    sh.fragmentShader = MASK_HEAD.replace('float occCell', OCC_AT + 'float occCell') + sh.fragmentShader
+      .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nfloat visF=heroVis(sightTarget());')
       .replace('#include <dithering_fragment>', `gl_FragColor.rgb=mix(${BG_GLSL},gl_FragColor.rgb,visF);\n#include <dithering_fragment>`);
   };
   return m;
@@ -103,6 +130,7 @@ export function buildOcc(rooms, solids, blocksSight) {
   tex.needsUpdate = true;
   maskU.uOcc.value = tex;
   maskU.uOccRect.value.set(x0, z0, w, h);
+  maskU.uOccSize.value.set(GW, GH);
   occ = { data, tex, x0, z0, w, h, GW, GH };
   return occ;
 }
