@@ -10,7 +10,7 @@ export const CAM = {
   fov: 50, targetY: 1.0,                  // look-at height above the hero's feet
   rotateSpeed: 3.0, pitchSpeed: 1.8,      // stick / arrow-key rates
 };
-export const DASH = { time: 0.34, speed: 11.5, cost: 28, iframes: 0.3 };
+export const DASH = { time: 0.34, speed: 11.5, cost: 28, iframes: 0.36 }; // iframes cover the whole dash
 export const FLASK = { max: 3, heal: 40, drinkTime: 0.75, healAt: 0.5, dropChance: 0.12 };
 
 export const HUSK    = { hp: 50, radius: 0.55, height: 2.1, embers: 3, aggro: 9,

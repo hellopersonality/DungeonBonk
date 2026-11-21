@@ -5,7 +5,11 @@ import { CAM } from '../data/tuning.js';
 
 export const BG = 0x07060a;
 
-export const renderer = new THREE.WebGLRenderer({ antialias: false });
+function createRenderer() {
+  try { return new THREE.WebGLRenderer({ antialias: false }); }
+  catch (err) { throw new Error('WebGL unavailable: ' + (err && err.message || err)); } // shown on the title screen (index.html)
+}
+export const renderer = createRenderer();
 renderer.localClippingEnabled = true; // used by the wall cut-away (see render/visibility.js)
 document.body.appendChild(renderer.domElement);
 export const canvas = renderer.domElement;

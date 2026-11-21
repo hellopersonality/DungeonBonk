@@ -41,6 +41,7 @@ export function rest() {
 /** Save: bank carried embers and set this crystal as the return point. Boons stay. */
 export function saveAt(c) {
   progress.lastCrystal = c;
+  if (c.id) save.checkpoint = c.id;
   const n = hero.carried;
   if (n) dmgNum(c.x, 2, c.z, '+' + n, 'gain');
   save.banked += n; hero.carried = 0; save.flasks = hero.flasks;

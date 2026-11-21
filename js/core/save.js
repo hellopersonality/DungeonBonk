@@ -10,6 +10,7 @@ export const save = {
   defeated: {},   // permanently defeated bosses, by id
   wlvl: 0,        // sweep blade upgrade level
   flasks: 1,      // flasks carried at last save
+  checkpoint: 'hub', // id of the crystal last saved at: the return point after death or reload
 };
 
 export const settings = {

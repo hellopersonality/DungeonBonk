@@ -54,7 +54,7 @@ export function buildRegion1() {
   [[-5, 5], [5, 5], [-5, -5]].forEach(([x, z]) => pillar(x, z, 0.6, T.hub));
   P.ceilingBeams(-8, 8, -8, 7, 'x', 3);
   P.rug(0, 0, 5, 5);
-  R.hubCrystal = P.crystal(0, 0, 'Hub');
+  R.hubCrystal = P.crystal(0, 0, 'Hub'); R.hubCrystal.id = 'hub';
   P.forge(5, -5.2);
   P.bench(-3, 4, 0); P.bench(3, 4, 0);
   P.barrel(-6.7, -6.7); P.barrel(-5.9, -6.8); P.crate(-6.7, -5.8, 0.7, 0.2);
@@ -95,7 +95,7 @@ export function buildRegion1() {
   P.barrel(-27.1, 33.1); P.barrel(-27.9, 33.2); P.crate(-39.1, 26.5, 0.6, 0.3);
   P.sigilDoor(-33.4, 33.96, FACE.north);
   P.torch(-39.95, 22, FACE.west, 'witch'); P.torch(-26.05, 31, FACE.east, 'witch');
-  R.cisternCrystal = P.crystal(-29, 17, 'Cistern');
+  R.cisternCrystal = P.crystal(-29, 17, 'Cistern'); R.cisternCrystal.id = 'cistern';
 
   // ---------- passage ----------
   P.rubble(-34.5, 12, 3, 0.3); P.roots(-33.4, 12, 2);
@@ -138,11 +138,14 @@ export function buildRegion1() {
   addInteract({ x: -2.4, z: 18, r: 2.2, label: 'Examine', act: () => showMsg('OUT OF REACH', 'something glints on the ledge above', '#e8c070', 2.4) });
   addInteract({ x: -7, z: 0, r: 2.2, label: 'Examine', cond: () => !save.shortcut, act: () => showMsg('BARRED', 'it will not open from this side', '#e8c070', 2.4) });
 
-  progress.lastCrystal = R.hubCrystal;
-  hero.pos.copy(HUB_SPAWN); hero.prev.copy(HUB_SPAWN);
+  // start at the crystal last saved at (old saves and unknown ids fall back to the Hub)
+  const spawnFor = c => (!c || c === R.hubCrystal ? { x: HUB_SPAWN.x, z: HUB_SPAWN.z } : { x: c.x + 1.4, z: c.z + 1.2 });
+  progress.lastCrystal = [R.hubCrystal, R.cisternCrystal].find(c => c.id === save.checkpoint) || R.hubCrystal;
+  const sp = spawnFor(progress.lastCrystal);
+  hero.pos.set(sp.x, 0, sp.z); hero.prev.copy(hero.pos);
 
   setLevel({
-    spawnFor: c => (!c || c === R.hubCrystal ? { x: HUB_SPAWN.x, z: HUB_SPAWN.z } : { x: c.x + 1.4, z: c.z + 1.2 }),
+    spawnFor,
     onReset() {
       if (!save.shortcut) P.setGate(R.arenaN, true);
       if (save.defeated.gatekeeper) revealAltar(R.bossAltar); // its reward altar stays once earned
