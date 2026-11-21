@@ -13,16 +13,17 @@ import { updateMessages, setPrompt } from './messages.js';
 const $ = id => document.getElementById(id);
 const el = {
   hp: document.querySelector('#hp>i'), st: document.querySelector('#st>i'),
-  xp: document.querySelector('#xp .bar>i'), lvl: $('lvl'), flasks: $('flasks'), wlvl: $('wlvl'), boons: $('boons'),
+  xp: document.querySelector('#xp .bar>i'), xpBox: $('xp'), xpn: $('xpn'), lvl: $('lvl'), flasks: $('flasks'), wlvl: $('wlvl'), boons: $('boons'),
   vig: $('vig'), act: $('actBtn'),
   boss: $('boss'), bossName: document.querySelector('#boss .n'), bossBar: document.querySelector('#boss .bar>i'),
 };
 let flasksKey = '';
+let lastXp = 0, lastLvl = 1, gainT = 0;
 const shown = new Map(); // last value written per element/property, so unchanged fields aren't rewritten
 function put(node, prop, v) {
   const m = shown.get(node) || {}; if (m[prop] === v) return;
   m[prop] = v; shown.set(node, m);
-  if (prop === 'text') node.textContent = v; else node.style[prop] = v;
+  if (prop === 'text') node.textContent = v; else if (prop === 'className') node.className = v; else node.style[prop] = v;
 }
 
 export function renderBoons() {
@@ -32,8 +33,14 @@ export function renderBoons() {
 export function updateHUD(dt) {
   put(el.hp, 'width', (hero.hp / HERO.maxHp * 100).toFixed(1) + '%');
   put(el.st, 'width', hero.st.toFixed(1) + '%');
-  put(el.lvl, 'text', 'LV ' + run.level);
-  put(el.xp, 'width', (run.pending ? 100 : run.xp / xpToNext() * 100).toFixed(1) + '%');
+  // level bar (top centre): glows briefly whenever embers come in
+  const need = xpToNext();
+  if (run.xp !== lastXp || run.level !== lastLvl) { if (run.xp > lastXp || run.level > lastLvl) gainT = 0.3; lastXp = run.xp; lastLvl = run.level; }
+  gainT -= dt;
+  put(el.lvl, 'text', 'LEVEL ' + run.level);
+  put(el.xpn, 'text', run.pending ? 'LEVEL UP!' : run.xp + ' / ' + need + ' embers');
+  put(el.xp, 'width', (run.pending ? 100 : run.xp / need * 100).toFixed(1) + '%');
+  put(el.xpBox, 'className', run.pending ? 'full' : gainT > 0 ? 'gain' : '');
   const key = hero.flasks + '|' + S.padActive + '|' + S.isTouch;
   if (key !== flasksKey) {
     flasksKey = key;
