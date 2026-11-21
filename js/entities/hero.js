@@ -204,11 +204,13 @@ export function updateHeroVisuals(now, raw) {
   const dir = A.orient(hero.facing);
   const flash = hero.hurt > 0.2 ? 'hurt' : S.healFlash > 0 ? 'heal' : '';
   const moving = Math.hypot(hero.vel.x, hero.vel.z) > 0.6;
-  let sheet = 'attack', frame = 0;                       // idle: the ready stance
+  const prog = (t, total, n) => Math.max(0, Math.min(n - 1, Math.floor((1 - t / total) * n)));
+  let sheet = 'idle', frame = Math.floor(S.clock * 5) % 4;  // idle: breathing loop
   if (hero.dead) { sheet = 'death'; frame = Math.min(3, Math.floor(hero.deadT / 0.18)); }
-  else if (hero.swingAnim > 0) { sheet = 'attack'; frame = 1 + Math.min(4, Math.floor((1 - hero.swingAnim / SWING_ANIM) * 5)); }
+  else if (hero.roll > 0) { sheet = 'dash'; frame = prog(hero.roll, DASH.time, 6); }
+  else if (hero.swingAnim > 0) { sheet = 'attack'; frame = 1 + prog(hero.swingAnim, SWING_ANIM, 5); }
   else if (hero.hurt > 0) { sheet = 'hurt'; frame = Math.min(2, Math.floor((0.35 - hero.hurt) / 0.12)); }
-  else if (hero.roll > 0) { sheet = 'walk'; frame = 2; }  // mid-stride lunge
+  else if (hero.drinkT > 0) { sheet = 'drink'; frame = prog(hero.drinkT, FLASK.drinkTime, 6); }
   else if (moving) { sheet = 'walk'; frame = Math.floor(hero.walk / (Math.PI / 3)) % 6; }
   A.show(`${sheet}|${frame}|${dir}|${flash}|${knightLoaded() ? 1 : 0}`, { sheet, frame, dir, flash });
   A.mesh.visible = !(hero.iframes > 0 && hero.roll <= 0 && !hero.dead && Math.floor(now / 60) % 2 === 0);

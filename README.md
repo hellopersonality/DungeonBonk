@@ -75,7 +75,7 @@ sprites (`render/sprites.js`). A sprite actor is an upright quad that turns to f
 camera, flips left/right by which way the character faces on screen, and has a blob
 shadow. Frames are painted by a `draw(ctx, A)` function. The hero uses a real sprite sheet
 (`assets/sprites/knight.png`, wired up in `render/knight.js`) with drawn down/left/up/right
-views for walk, attack, hurt and death. It is cut from the concept sheet in
+views for idle, walk, attack, dash, drink, hurt and death. It is cut from the concept sheets in
 `assets/source/` by `python3 tools/cut_knight.py`. Enemies still use procedural placeholders
 (`render/placeholders.js`); give them sheets the same way. Keep sprites at 16 px per world unit so their pixels
 match the wall textures. The hero faces where they walk (`hero.facing`), independent of
