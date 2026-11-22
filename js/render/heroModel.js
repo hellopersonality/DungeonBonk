@@ -7,6 +7,8 @@
 //
 // How the clips are used
 //   - Every source clip is trimmed to a WINDOW (seconds into the source) and resampled at 30 fps.
+//   - The sword slash is not a clip: slashPose() drives the right arm with two-bone IK along a
+//     horizontal arc (matching the floor wedge) and twists the spine through it.
 //   - Each trimmed clip is split into a LOWER set of tracks (hips + legs) and an UPPER set
 //     (spine, arms, head), so the sword swing and the flask can play on the upper body while the
 //     legs keep running. Weights are set by hand every frame (see update()) and always sum to 1
@@ -23,7 +25,7 @@ export const HERO_HEIGHT = 2.2;
  * Windows into the source clips, in seconds. `match` finds the clip by name (lower-case prefix).
  * Loops are cut to a whole stride so they wrap cleanly. Source clip names, for reference:
  *   wait (6s, near-static idle) · look_around (15.6s) · walk (2.3s) · run (1.25s)
- *   "Make the character swing a sword with one hand" (5s, the swing is at ~1.0-1.5s)
+ *   "Make the character swing a sword with one hand" (5s; not used, the slash is built in code, see slashPose())
  *   drinking a potion (5s) · dive (2.7s, the dodge roll) · fall (3s, the death)
  */
 const WINDOWS = {
@@ -31,7 +33,6 @@ const WINDOWS = {
   look:   { match: 'look_around', t0: 2.0,      t1: 8.0 },
   walk:   { match: 'walk',        t0: 2 / 30,   t1: 37 / 30 },
   run:    { match: 'run',         t0: 11 / 30,  t1: 30 / 30 },
-  attack: { match: 'make the',    t0: 0.97,     t1: 1.75, upper: true },
   drink:  { match: 'drinking',    t0: 1.1,      t1: 2.5,  upper: true },
   dive:   { match: 'dive',        t0: 0.75,     t1: 1.95 },
   fall:   { match: 'fall',        t0: 0,        t1: 2.0 },
@@ -40,14 +41,44 @@ const WINDOWS = {
 // Ground speed (world units / s) at which each loop plays at 1x. Faster movement plays faster.
 const WALK_SPEED = 1.15, RUN_SPEED = 2.8;
 const RUN_PHASE = 0.035;           // run stride phase relative to the walk stride, so crossfades keep the feet in step
-const ATTACK_LEN = 0.42;           // seconds the swing clip is stretched over (keep below the weapon cooldown)
+const ATTACK_LEN = 0.5;            // seconds the slash lasts (keep below the weapon cooldown)
 const LOOK_AFTER = 7;              // idle seconds before the hero glances around
 const BREATH = 0.012;              // chest breathing amount
 
 const LOWER_BONE = /^mixamorig(Hips|(Left|Right)(UpLeg|Leg|Foot|ToeBase|Toe_End))$/;
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = x => x * x * (3 - 2 * x);
+
+// scratch objects for the sword / IK maths
+const _up = new THREE.Vector3(), _bw = new THREE.Vector3(), _side = new THREE.Vector3(), _t = new THREE.Vector3(), _pole = new THREE.Vector3();
+const _s0 = new THREE.Vector3(), _e0 = new THREE.Vector3(), _h0 = new THREE.Vector3(), _e1 = new THREE.Vector3(), _tc = new THREE.Vector3();
+const _d = new THREE.Vector3(), _pl = new THREE.Vector3(), _z = new THREE.Vector3(), _x = new THREE.Vector3();
+const _dq = new THREE.Quaternion(), _wq = new THREE.Quaternion(), _pq = new THREE.Quaternion(), _qa = new THREE.Quaternion(), _qf = new THREE.Quaternion();
+const _hq = new THREE.Quaternion(), _lq = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _m = new THREE.Matrix4();
+const _p0 = new THREE.Vector3(), _p1 = new THREE.Vector3(), _d0 = new THREE.Vector3(), _d1 = new THREE.Vector3();
+
+/** Rotate `bone` by the world-space rotation dq (about the bone's own origin). */
+function rotateWorld(bone, dq) {
+  bone.getWorldQuaternion(_wq); bone.parent.getWorldQuaternion(_pq);
+  _wq.premultiply(dq);
+  bone.quaternion.copy(_pq.invert().multiply(_wq));
+  bone.updateMatrixWorld(true);
+}
+/** Turn `bone` so the segment from it to `child` points at `target` (world). */
+function aimBone(bone, child, target) {
+  bone.getWorldPosition(_p0); child.getWorldPosition(_p1);
+  _d0.subVectors(_p1, _p0).normalize(); _d1.subVectors(target, _p0).normalize();
+  rotateWorld(bone, _dq.setFromUnitVectors(_d0, _d1));
+}
+/** Sword orientation (world): blade (+Y) along `dir`, the flat of the blade (+Z) as close to `flat` as possible. */
+function bladeQuat(dir, flat, out) {
+  _z.copy(flat).addScaledVector(dir, -flat.dot(dir));
+  if (_z.lengthSq() < 1e-4) _z.set(1, 0, 0).addScaledVector(dir, -dir.x);
+  _z.normalize(); _x.crossVectors(dir, _z);
+  return (out || new THREE.Quaternion()).setFromRotationMatrix(_m.makeBasis(_x, dir, _z));
+}
 
 /** Copy of `clip` between t0 and t1 resampled at FPS, keeping only the tracks `keep` accepts. */
 function sliceClip(clip, name, t0, t1, keep, restHips) {
@@ -182,6 +213,7 @@ export class HeroModel {
     // hand-local axes (Mixamo right hand): +Y fingers, +X blade-up for a fist, +Z thumb. The blade
     // stands out of the fist tilted a little toward the fingers, so it points forward during the swing
     g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(Math.cos(0.52), Math.sin(0.52), 0));
+    this.gripQ = g.quaternion.clone(); // fixed orientation in the fist (used while rolling / dead)
     g.position.set(0, 0.02, 0);
     this.sword = g;
     g.userData.noMask = true;
@@ -220,7 +252,7 @@ export class HeroModel {
     if (this.diveT >= 0) { this.diveT += dt; if (this.diveT >= this.diveLen) this.diveT = -1; }
     if (this.drinkT >= 0) { this.drinkT += dt; if (this.drinkT >= this.drinkLen) this.drinkT = -1; }
     const fullOv = this.dead ? 'fall' : this.diveT >= 0 ? 'dive' : null;
-    const upperOv = this.drinkT >= 0 ? 'drink' : this.atkT >= 0 ? 'attack' : null;
+    const upperOv = this.drinkT >= 0 ? 'drink' : null;
 
     // ---- locomotion mix
     const sp = s.speed;
@@ -243,10 +275,10 @@ export class HeroModel {
       let tl = 0, tu = 0;
       if (key in share) { tl = share[key] * (fullOv ? 0 : 1); tu = share[key] * (fullOv || upperOv ? 0 : 1); }
       else if (key === 'dive' || key === 'fall') tl = tu = fullOv === key ? 1 : 0;
-      else tu = upperOv === key && !fullOv ? 1 : 0; // attack, drink: upper body only
+      else tu = upperOv === key && !fullOv ? 1 : 0; // drink: upper body only
       T[key] = { L: tl, U: tu };
     }
-    const RATE = { attack: [26, 12], drink: [14, 9], dive: [34, 14], fall: [14, 14] };
+    const RATE = { drink: [14, 9], dive: [34, 14], fall: [14, 14] };
     for (const key in this.a) {
       const rate = RATE[key] || [10, 10], A = this.a[key];
       for (const g of ['L', 'U']) {
@@ -263,7 +295,6 @@ export class HeroModel {
     this.setTime('look', clamp(this.lookT, 0, this.a.look.len));
     this.setTime('walk', this.phase * this.a.walk.len);
     this.setTime('run', ((this.phase + RUN_PHASE) % 1) * this.a.run.len);
-    this.setTime('attack', clamp(this.atkT / ATTACK_LEN, 0, 1) * this.a.attack.len);
     this.setTime('drink', clamp(this.drinkT / this.drinkLen, 0, 1) * this.a.drink.len);
     this.setTime('dive', clamp(this.diveT / this.diveLen, 0, 1) * this.a.dive.len);
     this.setTime('fall', clamp(s.deadT || 0, 0, this.a.fall.len));
@@ -276,14 +307,77 @@ export class HeroModel {
     // knocked back when hit: lean away from the blow, eased out
     const hurt = clamp(s.hurt || 0, 0, 1);
     this.holder.rotation.x = this.dead ? 0 : -0.32 * hurt * hurt;
-    // sword swing: the clip is a short jab, so the body twists through it (alternating sides) to sell a slash
-    const atkK = this.atkT >= 0 ? this.atkT / ATTACK_LEN : 0;
-    this.holder.rotation.y = this.atkDir * 0.5 * Math.sin(Math.PI * atkK);
+    // sword: held at the ready, or driven through the slash (poses the spine and right arm on top of the clips)
+    const fullW = (this.a.dive.L ? this.a.dive.L.getEffectiveWeight() : 0) + (this.a.fall.L ? this.a.fall.L.getEffectiveWeight() : 0);
+    this.holder.rotation.y = 0;
+    this.slashPose(fullW);
     const drinking = this.drinkT >= 0 && !fullOv;
     if (this.flask) { this.flask.visible = drinking; this.sword.visible = !drinking; }
     const f = s.flash === 'hurt' ? [1, 0.18, 0.1] : s.flash === 'heal' ? [0.25, 1, 0.45] : null;
     if (f) this.mat.emissive.setRGB(0.6 + f[0] * 0.3, 0.6 + f[1] * 0.3, 0.6 + f[2] * 0.3);
     else this.mat.emissive.setRGB(0.6, 0.6, 0.6);
+  }
+
+  /**
+   * Hand-built sword slash + the rest of the sword's orientation.
+   * The slash is a horizontal cut across the front (the same arc as the reach wedge on the floor), right to
+   * left, then left to right on the next swing. The right arm is solved with two-bone IK to a hand target on
+   * that arc, the spine twists with it, and the blade points outward and leads the hand. Outside a slash the
+   * blade is held forward and up whatever the arm is doing; while rolling or dead it stays glued to the fist.
+   */
+  slashPose(fullW) {
+    if (!this.sword) return;
+    const B = this.bones, hold = this.holder;
+    hold.updateMatrixWorld(true);
+    const k = this.atkT >= 0 ? this.atkT / ATTACK_LEN : 0;
+    const w = this.atkT >= 0 ? smooth(clamp(k / 0.08, 0, 1)) * (1 - smooth(clamp((k - 0.66) / 0.34, 0, 1))) : 0;
+    const dir = this.atkDir, up = _up.set(0, 1, 0).transformDirection(hold.matrixWorld);
+    // blade direction (model space) at the ready, and during the slash
+    let bladeW = _bw.set(-0.12, 0.62, 0.78).normalize();
+    this._carryQ = bladeQuat(bladeW.transformDirection(hold.matrixWorld), _side.set(1, 0, 0).transformDirection(hold.matrixWorld), this._carryQ);
+    let q = this._carryQ;
+    if (w > 0) {
+      const s = clamp(k / 0.4, 0, 1), e = s * s * (3 - 2 * s);
+      const th = dir > 0 ? lerp(-1.3, 1.1, e) : lerp(1.1, -1.3, e);               // 0 = straight ahead, + = to the knight's left
+      const y = dir > 0 ? lerp(0.69, 0.54, e) : lerp(0.52, 0.66, e);              // high to low, or low to high
+      const tilt = dir > 0 ? lerp(0.3, -0.25, e) : lerp(-0.2, 0.3, e);
+      // spine twist follows the sword (about the model's up axis), shared over the three spine bones
+      const tw = w * 0.4 * th;
+      for (const [n, f] of [['mixamorigSpine', 0.3], ['mixamorigSpine1', 0.35], ['mixamorigSpine2', 0.35]]) rotateWorld(B[n], _dq.setFromAxisAngle(up, tw * f));
+      hold.updateMatrixWorld(true);
+      // hand target on the arc, then the arm
+      const target = _t.set(-0.02 + 0.19 * Math.sin(th), y, 0.03 + 0.19 * Math.cos(th));
+      hold.localToWorld(target);
+      const pole = _pole.set(-0.3, -1, -0.4).transformDirection(hold.matrixWorld);
+      this.solveArm(target, pole, w);
+      const lead = th + dir * 0.4;
+      const bd = _bw.set(Math.sin(lead), tilt, Math.cos(lead)).normalize().transformDirection(hold.matrixWorld);
+      this._slashQ = bladeQuat(bd, up, this._slashQ);
+      q = _q2.copy(this._carryQ).slerp(this._slashQ, w);
+    }
+    // world orientation q -> the sword's local rotation under the hand bone, blended back to the fixed grip
+    // orientation while rolling or dead
+    B.mixamorigRightHand.getWorldQuaternion(_hq).invert();
+    _lq.copy(_hq).multiply(q);
+    this.sword.quaternion.copy(this.gripQ).slerp(_lq, 1 - clamp(fullW, 0, 1));
+  }
+
+  /** Two-bone IK for the right arm: hand to `target` (world), elbow bending toward `pole`. */
+  solveArm(target, pole, w) {
+    const A = this.bones.mixamorigRightArm, F = this.bones.mixamorigRightForeArm, H = this.bones.mixamorigRightHand;
+    const qa = _qa.copy(A.quaternion), qf = _qf.copy(F.quaternion);
+    A.getWorldPosition(_s0); F.getWorldPosition(_e0); H.getWorldPosition(_h0);
+    const L1 = _s0.distanceTo(_e0), L2 = _e0.distanceTo(_h0);
+    _d.subVectors(target, _s0);
+    const D = clamp(_d.length(), 0.1 * (L1 + L2), 0.985 * (L1 + L2));
+    _d.normalize();
+    const a = (L1 * L1 - L2 * L2 + D * D) / (2 * D), h = Math.sqrt(Math.max(0, L1 * L1 - a * a));
+    _pl.copy(pole).addScaledVector(_d, -pole.dot(_d)).normalize();
+    _e1.copy(_s0).addScaledVector(_d, a).addScaledVector(_pl, h);
+    _tc.copy(_s0).addScaledVector(_d, D);
+    aimBone(A, F, _e1); aimBone(F, H, _tc);
+    A.quaternion.slerpQuaternions(qa, A.quaternion, w); F.quaternion.slerpQuaternions(qf, F.quaternion, w);
+    A.updateMatrixWorld(true);
   }
 
   setTime(key, t) { const A = this.a[key]; if (A.L) A.L.time = t; if (A.U) A.U.time = t; }
