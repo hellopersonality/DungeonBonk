@@ -8,6 +8,7 @@ import { BOON_FX } from '../data/boons.js';
 import { scene } from '../render/renderer.js';
 import { createActor, createGhost, removeGhost } from '../render/sprites.js';
 import { KNIGHT, knightLoaded, whenKnightLoaded } from '../render/knight.js';
+import { loadHeroModel } from '../render/heroModel.js';
 import { collide, sectorGeo } from '../world/geometry.js';
 import { enemies } from './enemies/registry.js';
 import { hitEnemy } from '../systems/combat.js';
@@ -30,23 +31,32 @@ export const hero = {
   boons: new Set(), riposte: false, trailT: 0,
 };
 
+/** The 3D knight once it has loaded (null before, or if it failed); for debugging and tests. */
+export const getHeroModel = () => rig.model;
+
 /** Current sweep blade stats (updated by applyWeapon). */
 export const weapon = { s: weaponStats(0), glow: 0 };
 
 /** Sprite swing animation length (s); the hit itself lands instantly. Keep below the weapon cooldown. */
 const SWING_ANIM = 0.3;
 
-const rig = {}; // sprite actor, floor shapes, light
+const rig = { model: null, animDt: 0 }; // 3D knight (null until loaded), sprite actor (fallback), floor shapes, light
 const ghosts = [];
 let ghostT = 0;
 
 // ---------- model ----------
-// The hero is a billboarded sprite (see render/sprites.js). Only the floor shapes (reach
-// wedge, swing flash) and the light are 3D; they rotate with hero.facing.
+// The hero is the 3D knight (render/heroModel.js). Until it has loaded (or if it can't load) the
+// billboarded sprite stands in (see render/sprites.js). The floor shapes (reach wedge, swing
+// flash) and the light rotate with hero.facing.
 export function initHero() {
   const root = new THREE.Group(); scene.add(root);
   rig.actor = createActor({ ...KNIGHT, mask: false }); // the hero is always visible
   whenKnightLoaded(() => { rig.actor.key = null; });
+  loadHeroModel().then(m => {
+    rig.model = m; scene.add(m.root);
+    rig.actor.group.visible = false;
+    m.setBlade(run.wlvl, weapon.glow);
+  }).catch(err => console.warn('3D knight unavailable, keeping the sprite:', err));
 
   // reach wedge on the floor and the swing flash
   const W = weapon.s;
@@ -67,6 +77,7 @@ export function applyWeapon() {
   weapon.glow = BLADE_GLOW[run.wlvl] || 0;
   rig.swing.material.color.setHex(run.wlvl >= 5 ? 0xffb060 : 0xfff4d0);
   rig.actor.key = null; // the sprite's blade changes with the upgrade level
+  if (rig.model) rig.model.setBlade(run.wlvl, weapon.glow);
   refreshReach();
 }
 
@@ -79,6 +90,7 @@ export function refreshReach() {
 
 export function resetHeroPose() {
   hero.facing = 0; rig.actor.key = null;
+  if (rig.model) rig.model.reset();
 }
 
 // ---------- actions ----------
@@ -91,6 +103,7 @@ export function tryDodge() {
   if (d.lengthSq() < 0.01) d.set(-Math.sin(hero.facing), 0, -Math.cos(hero.facing)); // no input: dash backwards
   hero.rollDir.copy(d.normalize());
   hero.roll = DASH.time; hero.iframes = DASH.iframes; ghostT = 0;
+  if (rig.model) rig.model.playDive(DASH.time + 0.2); // the roll, then the climb back up while running on
 }
 
 export function tryDrink() {
@@ -98,11 +111,17 @@ export function tryDrink() {
   if (hero.flasks <= 0) { showHint('No flasks left', 1.4); return; }
   if (hero.hp >= HERO.maxHp) { showHint('Already at full health', 1.4); return; }
   hero.flasks--; hero.drinkT = FLASK.drinkTime; hero.drinkDone = false;
+  if (rig.model) rig.model.playDrink(FLASK.drinkTime);
   sfx.drink();
 }
 
 /** Dash afterimage: a frozen, tinted copy of the current sprite frame. */
 function spawnGhost() {
+  if (rig.model) { // 3D: a frozen copy of the whole posed model
+    const g = rig.model.makeGhost(0x9fc8ff); scene.add(g);
+    ghosts.push({ m: g, t: 0, model: true });
+    return;
+  }
   const A = rig.actor;
   const m = createGhost(A.snapshot(), A.w, A.h, A.flip, 0x9fc8ff);
   m.position.set(hero.pos.x, 0, hero.pos.z);
@@ -111,6 +130,7 @@ function spawnGhost() {
 
 // ---------- per-frame ----------
 export function updateHero(dt) {
+  rig.animDt += dt; // simulation time for the 3D model's animation (it stops with the game)
   hero.iframes -= dt; hero.hurt -= dt;
   if (hero.dead) {
     hero.deadT += dt;
@@ -180,6 +200,7 @@ export function updateHero(dt) {
       targets.forEach(hitEnemy);
       hero.riposte = false;
       hero.atkCd = W.cd; hero.swingT = SWING_T; hero.swingAnim = SWING_ANIM; hero.swings++;
+      if (rig.model) rig.model.playSwing();
       if (has('third') && hero.swings % 3 === 0) spawnWave();
     }
   }
@@ -194,11 +215,24 @@ export function updateHero(dt) {
 
 /** Visual-only updates that run every frame (also while paused). */
 export function updateHeroVisuals(now, raw) {
-  const A = rig.actor;
+  const A = rig.actor, M = rig.model;
   rig.root.position.set(hero.pos.x, 0, hero.pos.z);
   rig.root.rotation.y = hero.facing;
   A.setPos(hero.pos.x, 0, hero.pos.z);
   S.healFlash -= raw;
+  if (M) {
+    M.root.position.set(hero.pos.x, 0, hero.pos.z);
+    M.root.rotation.y = hero.facing;
+    M.update(rig.animDt, {
+      speed: Math.hypot(hero.vel.x, hero.vel.z), dead: hero.dead, deadT: hero.deadT,
+      hurt: Math.max(0, hero.hurt) / 0.35, flash: hero.hurt > 0.2 ? 'hurt' : S.healFlash > 0 ? 'heal' : '',
+    });
+    rig.animDt = 0;
+    M.root.visible = !(hero.iframes > 0 && hero.roll <= 0 && !hero.dead && Math.floor(now / 60) % 2 === 0);
+    rig.light.position.set(hero.pos.x, 2.4, hero.pos.z);
+    updateGhosts(raw);
+    return;
+  }
 
   // pick the sheet animation and frame for the current state (see render/knight.js)
   const dir = A.orient(hero.facing);
@@ -216,9 +250,17 @@ export function updateHeroVisuals(now, raw) {
   A.mesh.visible = !(hero.iframes > 0 && hero.roll <= 0 && !hero.dead && Math.floor(now / 60) % 2 === 0);
 
   rig.light.position.set(hero.pos.x, 2.4, hero.pos.z);
+  updateGhosts(raw);
+}
+
+function updateGhosts(raw) {
   for (let i = ghosts.length - 1; i >= 0; i--) {
     const g = ghosts[i]; g.t += raw;
-    g.m.material.opacity = 0.32 * (1 - g.t / 0.22);
-    if (g.t >= 0.22) { removeGhost(g.m); ghosts.splice(i, 1); }
+    const op = 0.32 * (1 - g.t / 0.22);
+    if (g.model) g.m.userData.mat.opacity = op; else g.m.material.opacity = op;
+    if (g.t >= 0.22) {
+      if (g.model) { scene.remove(g.m); rig.model.disposeGhost(g.m); } else removeGhost(g.m);
+      ghosts.splice(i, 1);
+    }
   }
 }

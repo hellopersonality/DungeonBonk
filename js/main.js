@@ -8,7 +8,7 @@ import { updateCamera } from './render/camera.js';
 import { solids } from './world/geometry.js';
 import { updateProps } from './world/props.js';
 import { buildRegion1 } from './world/region1.js';
-import { hero, initHero, updateHero, updateHeroVisuals } from './entities/hero.js';
+import { hero, initHero, updateHero, updateHeroVisuals, getHeroModel } from './entities/hero.js';
 import { enemies, bossRef, updateEnemies, updateEnemySprites } from './entities/enemies/registry.js';
 import { updateProjectiles, spitMat } from './entities/enemies/spitter.js';
 import { updateEmbers, updateFlasks, emberMat, flaskMats } from './systems/pickups.js';
@@ -91,5 +91,5 @@ requestAnimationFrame(frame);
 
 // Debug handle for testing: open the page with #debug
 if (location.hash === '#debug') {
-  window.__dbg = { S, save, hero, enemies, get boss() { return bossRef.e; } };
+  window.__dbg = { S, save, hero, enemies, get boss() { return bossRef.e; }, get model() { return getHeroModel(); } };
 }
