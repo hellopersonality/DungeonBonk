@@ -7,8 +7,8 @@
 //
 // How the clips are used
 //   - Every source clip is trimmed to a WINDOW (seconds into the source) and resampled at 30 fps.
-//   - The sword slash is not a clip: slashPose() drives the right arm with two-bone IK along a
-//     horizontal arc (matching the floor wedge) and twists the spine through it.
+//   - The sword slash is not a clip: slashPose() drives the right arm with two-bone IK through a
+//     diagonal overhead cut and twists the spine through it.
 //   - Each trimmed clip is split into a LOWER set of tracks (hips + legs) and an UPPER set
 //     (spine, arms, head), so the sword swing and the flask can play on the upper body while the
 //     legs keep running. Weights are set by hand every frame (see update()) and always sum to 1
@@ -29,7 +29,7 @@ export const HERO_HEIGHT = 2.2;
  *   drinking a potion (5s) · dive (2.7s, the dodge roll) · fall (3s, the death)
  */
 const WINDOWS = {
-  idle:   { match: 'wait',        t0: 1.5,      t1: 4.5 },
+  idle:   { match: 'look_around', t0: 2.0,      t1: 8.0 },
   look:   { match: 'look_around', t0: 2.0,      t1: 8.0 },
   walk:   { match: 'walk',        t0: 2 / 30,   t1: 37 / 30 },
   run:    { match: 'run',         t0: 11 / 30,  t1: 30 / 30 },
@@ -42,7 +42,7 @@ const WINDOWS = {
 const WALK_SPEED = 1.15, RUN_SPEED = 2.8;
 const RUN_PHASE = 0.035;           // run stride phase relative to the walk stride, so crossfades keep the feet in step
 const ATTACK_LEN = 0.5;            // seconds the slash lasts (keep below the weapon cooldown)
-const LOOK_AFTER = 7;              // idle seconds before the hero glances around
+const LOOK_AFTER = 1e9;             // idle seconds before the hero glances around
 const BREATH = 0.012;              // chest breathing amount
 
 const LOWER_BONE = /^mixamorig(Hips|(Left|Right)(UpLeg|Leg|Foot|ToeBase|Toe_End))$/;
@@ -54,10 +54,19 @@ const smooth = x => x * x * (3 - 2 * x);
 // scratch objects for the sword / IK maths
 const _up = new THREE.Vector3(), _bw = new THREE.Vector3(), _side = new THREE.Vector3(), _t = new THREE.Vector3(), _pole = new THREE.Vector3();
 const _s0 = new THREE.Vector3(), _e0 = new THREE.Vector3(), _h0 = new THREE.Vector3(), _e1 = new THREE.Vector3(), _tc = new THREE.Vector3();
-const _d = new THREE.Vector3(), _pl = new THREE.Vector3(), _z = new THREE.Vector3(), _x = new THREE.Vector3();
+const _qi = new THREE.Quaternion(), _bc = new THREE.Vector3(), _flat = new THREE.Vector3(), _d = new THREE.Vector3(), _pl = new THREE.Vector3(), _z = new THREE.Vector3(), _x = new THREE.Vector3();
 const _dq = new THREE.Quaternion(), _wq = new THREE.Quaternion(), _pq = new THREE.Quaternion(), _qa = new THREE.Quaternion(), _qf = new THREE.Quaternion();
 const _hq = new THREE.Quaternion(), _lq = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _m = new THREE.Matrix4();
 const _p0 = new THREE.Vector3(), _p1 = new THREE.Vector3(), _d0 = new THREE.Vector3(), _d1 = new THREE.Vector3();
+
+// slash keyframes (model space, +Z ahead, -X is the knight's right): wind-up, mid-cut, follow-through
+const SLASH_HAND = [new THREE.Vector3(-0.14, 0.84, -0.04), new THREE.Vector3(-0.02, 0.74, 0.17), new THREE.Vector3(0.10, 0.52, 0.17)];
+const SLASH_BLADE = [new THREE.Vector3(-0.15, 0.95, -0.3), new THREE.Vector3(0.15, 0.55, 0.8), new THREE.Vector3(0.75, -0.3, 0.55)];
+/** Quadratic Bezier through K[0], K[1] (at p = 0.5) and K[2]. */
+function bez(K, p, out) {
+  const u = 1 - p, c = _bc.copy(K[1]).multiplyScalar(2).addScaledVector(K[0], -0.5).addScaledVector(K[2], -0.5);
+  return out.copy(K[0]).multiplyScalar(u * u).addScaledVector(c, 2 * u * p).addScaledVector(K[2], p * p);
+}
 
 /** Rotate `bone` by the world-space rotation dq (about the bone's own origin). */
 function rotateWorld(bone, dq) {
@@ -290,8 +299,8 @@ export class HeroModel {
     const walkRate = clamp(sp / WALK_SPEED, 0, 2.4) / this.a.walk.len;   // stride cycles per second
     const runRate = clamp(sp / RUN_SPEED, 0.6, 2.2) / this.a.run.len;
     this.phase = (this.phase + dt * (walkRate + (runRate - walkRate) * run)) % 1;
-    this.idleLoop = (this.idleLoop + dt) % this.a.idle.len;
-    this.setTime('idle', this.idleLoop);
+    this.idleLoop = (this.idleLoop + dt) % (2 * this.a.idle.len);   // ping-pong: the clip's ends don't match, so no seam
+    this.setTime('idle', this.idleLoop < this.a.idle.len ? this.idleLoop : 2 * this.a.idle.len - this.idleLoop);
     this.setTime('look', clamp(this.lookT, 0, this.a.look.len));
     this.setTime('walk', this.phase * this.a.walk.len);
     this.setTime('run', ((this.phase + RUN_PHASE) % 1) * this.a.run.len);
@@ -320,8 +329,8 @@ export class HeroModel {
 
   /**
    * Hand-built sword slash + the rest of the sword's orientation.
-   * The slash is a horizontal cut across the front (the same arc as the reach wedge on the floor), right to
-   * left, then left to right on the next swing. The right arm is solved with two-bone IK to a hand target on
+   * The slash is a big diagonal cut: wind up over the right shoulder, bring the blade down across the front to the
+   * left hip, then play it back as a rising backhand on the next swing. The right arm is solved with two-bone IK to a hand target on
    * that arc, the spine twists with it, and the blade points outward and leads the hand. Outside a slash the
    * blade is held forward and up whatever the arm is doing; while rolling or dead it stays glued to the fist.
    */
@@ -337,22 +346,24 @@ export class HeroModel {
     this._carryQ = bladeQuat(bladeW.transformDirection(hold.matrixWorld), _side.set(1, 0, 0).transformDirection(hold.matrixWorld), this._carryQ);
     let q = this._carryQ;
     if (w > 0) {
-      const s = clamp(k / 0.4, 0, 1), e = s * s * (3 - 2 * s);
-      const th = dir > 0 ? lerp(-1.3, 1.1, e) : lerp(1.1, -1.3, e);               // 0 = straight ahead, + = to the knight's left
-      const y = dir > 0 ? lerp(0.69, 0.54, e) : lerp(0.52, 0.66, e);              // high to low, or low to high
-      const tilt = dir > 0 ? lerp(0.3, -0.25, e) : lerp(-0.2, 0.3, e);
-      // spine twist follows the sword (about the model's up axis), shared over the three spine bones
-      const tw = w * 0.4 * th;
+      // big diagonal cut: wind up over the right shoulder, bring the blade down across the front to the
+      // left hip. dir < 0 plays the same path backwards (a rising backhand cut).
+      const t = clamp((k - 0.1) / 0.3, 0, 1), e = dir > 0 ? t * t * (3 - 2 * t) : 1 - t * t * (3 - 2 * t);
+      bez(SLASH_HAND, e, _t); bez(SLASH_BLADE, e, _bw).normalize();
+      bez(SLASH_BLADE, clamp(e + (dir > 0 ? 0.06 : -0.06), 0, 1), _side).normalize();
+      // spine twist follows the cut (about the model's up axis), shared over the three spine bones
+      const tw = w * lerp(-0.4, 0.5, e);
       for (const [n, f] of [['mixamorigSpine', 0.3], ['mixamorigSpine1', 0.35], ['mixamorigSpine2', 0.35]]) rotateWorld(B[n], _dq.setFromAxisAngle(up, tw * f));
       hold.updateMatrixWorld(true);
-      // hand target on the arc, then the arm
-      const target = _t.set(-0.02 + 0.19 * Math.sin(th), y, 0.03 + 0.19 * Math.cos(th));
-      hold.localToWorld(target);
+      hold.localToWorld(_t);
       const pole = _pole.set(-0.3, -1, -0.4).transformDirection(hold.matrixWorld);
-      this.solveArm(target, pole, w);
-      const lead = th + dir * 0.4;
-      const bd = _bw.set(Math.sin(lead), tilt, Math.cos(lead)).normalize().transformDirection(hold.matrixWorld);
-      this._slashQ = bladeQuat(bd, up, this._slashQ);
+      this.solveArm(_t, pole, w);
+      // blade plane contains the travel direction: flat normal = blade x travel
+      _bw.transformDirection(hold.matrixWorld); _side.transformDirection(hold.matrixWorld);
+      _flat.crossVectors(_bw, _side.sub(_bw));
+      if (dir < 0) _flat.negate();
+      if (_flat.lengthSq() < 1e-8) _flat.copy(up);
+      this._slashQ = bladeQuat(_bw, _flat, this._slashQ);
       q = _q2.copy(this._carryQ).slerp(this._slashQ, w);
     }
     // world orientation q -> the sword's local rotation under the hand bone, blended back to the fixed grip
@@ -376,7 +387,8 @@ export class HeroModel {
     _e1.copy(_s0).addScaledVector(_d, a).addScaledVector(_pl, h);
     _tc.copy(_s0).addScaledVector(_d, D);
     aimBone(A, F, _e1); aimBone(F, H, _tc);
-    A.quaternion.slerpQuaternions(qa, A.quaternion, w); F.quaternion.slerpQuaternions(qf, F.quaternion, w);
+    _qi.copy(A.quaternion); A.quaternion.copy(qa).slerp(_qi, w);
+    _qi.copy(F.quaternion); F.quaternion.copy(qf).slerp(_qi, w);
     A.updateMatrixWorld(true);
   }
 
