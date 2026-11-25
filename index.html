@@ -4,19 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>The Hollow Loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="vig"></div>
-<div id="nums"></div>
+<canvas id="nums"></canvas>
 <div id="hud">
   <div class="bar" id="hp"><i style="width:100%"></i></div>
   <div class="bar" id="st"><i style="width:100%"></i></div>
   <div id="flasks"></div>
-  <div id="wlvl"></div>
+  <div class="jw"><div id="wlvl" class="wlvl"></div></div>
   <div id="boons"></div>
 </div>
-<div id="xp"><div class="top"><span id="lvl">LEVEL 1</span><span id="xpn">0 / 5</span></div><div class="bar"><i style="width:0%"></i></div></div>
+<div id="xp"><div class="top"><span class="jw"><span id="lvl" class="lvl">LEVEL 1</span></span><span class="jw"><span id="xpn" class="xpn">0 / 5</span></span></div><div class="bar"><i style="width:0%"></i></div></div>
 <div id="boss"><div class="n">THE GATEKEEPER</div><div class="bar"><i style="width:100%"></i></div></div>
 <div id="msg"></div>
 <div id="hint"></div>
