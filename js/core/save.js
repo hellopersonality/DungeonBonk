@@ -15,6 +15,7 @@ export const settings = {
   invertMouseY: false,
   padSens: 1,
   mouseSens: 1,
+  juice: true,    // juicy text: springy pops and colour shadows
 };
 
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || 'null') || {}); } catch (_) {}

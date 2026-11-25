@@ -26,6 +26,7 @@ const PAUSE_ITEMS = [
   { label: () => `Invert Y (mouse) <b>${settings.invertMouseY ? 'On' : 'Off'}</b>`, act: toggle('invertMouseY'), adj: toggle('invertMouseY') },
   { label: () => `Stick sensitivity <b>◀ ${settings.padSens.toFixed(1)} ▶</b>`, ...slider('padSens') },
   { label: () => `Mouse sensitivity <b>◀ ${settings.mouseSens.toFixed(1)} ▶</b>`, ...slider('mouseSens') },
+  { label: () => `Juicy text <b>${settings.juice !== false ? 'On' : 'Off'}</b>`, act: toggle('juice'), adj: toggle('juice') },
   { label: () => `Sound <b>${S.muted ? 'Off' : 'On'}</b>`, act: () => { S.muted = !S.muted; }, adj: () => { S.muted = !S.muted; } },
 ];
 const PAUSE_HELP = () => S.padActive

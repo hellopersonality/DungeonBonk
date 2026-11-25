@@ -20,6 +20,7 @@ import { initInput } from './input/input.js';
 import { pollPad } from './input/gamepad.js';
 import { updateHUD } from './ui/hud.js';
 import { updateNums } from './ui/numbers.js';
+import { juiceDom } from './vendor/juice.js';
 import { showHint } from './ui/messages.js';
 
 // ---------- build ----------
@@ -85,6 +86,7 @@ function frame(now) {
   updateCamera(raw);
   updateNums(raw);
   updateHUD(raw);
+  juiceDom.tick(raw);
   renderer.render(scene, camera);
 }
 requestAnimationFrame(frame);

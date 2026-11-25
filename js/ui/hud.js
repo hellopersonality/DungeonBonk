@@ -2,6 +2,7 @@
 // and the interaction prompt.
 import { S } from '../core/state.js';
 import { FLASK, HERO } from '../data/tuning.js';
+import { settings } from '../core/save.js';
 import { run, xpToNext } from '../systems/leveling.js';
 import { BOONS } from '../data/boons.js';
 import { hero } from '../entities/hero.js';
@@ -9,6 +10,8 @@ import { bossRef } from '../entities/enemies/registry.js';
 import { nearestInteract } from '../systems/interact.js';
 import { btnLabel } from '../input/gamepad.js';
 import { updateMessages, setPrompt } from './messages.js';
+import { screenPop } from './numbers.js';
+import { juiceDom } from '../vendor/juice.js';
 
 const $ = id => document.getElementById(id);
 const el = {
@@ -18,6 +21,11 @@ const el = {
   boss: $('boss'), bossName: document.querySelector('#boss .n'), bossBar: document.querySelector('#boss .bar>i'),
 };
 let flasksKey = '';
+// juicy HUD text: springy punch + lagging colour shadow (see js/vendor/juice.js)
+const jLvl = juiceDom.attach(el.lvl, { sk: 520, sz: 0.28 });
+const jXpn = juiceDom.attach(el.xpn, { sk: 560, sz: 0.32, ci: 3 });
+const jWlvl = juiceDom.attach(el.wlvl, { sk: 520, sz: 0.3, ci: 5 });
+let lvlGlow = 0, lastW = 0;
 let lastXp = 0, lastLvl = 1, gainT = 0;
 const shown = new Map(); // last value written per element/property, so unchanged fields aren't rewritten
 function put(node, prop, v) {
@@ -37,8 +45,21 @@ export function updateHUD(dt) {
   const need = xpToNext();
   if (run.xp !== lastXp || run.level !== lastLvl) { if (run.xp > lastXp || run.level > lastLvl) gainT = 0.3; lastXp = run.xp; lastLvl = run.level; }
   gainT -= dt;
+  const prevLvl = el.lvl.textContent, prevXpn = el.xpn.textContent;
   put(el.lvl, 'text', 'LEVEL ' + run.level);
   put(el.xpn, 'text', run.pending ? 'LEVEL UP!' : run.xp + ' / ' + need + ' embers');
+  const juice = settings.juice !== false;
+  if (el.lvl.textContent !== prevLvl) {
+    jLvl.sync();
+    if (run.level > 1 && juice) { jLvl.pop(); lvlGlow = 1.6; screenPop('LEVEL UP!', 0.5, 0.3); }
+  }
+  if (el.xpn.textContent !== prevXpn) {
+    jXpn.sync();
+    if (juice && run.xp + run.level > 1) { jXpn.punch(run.pending ? 14 : 5).shove(run.pending ? 300 : 90); if (run.pending) jXpn.wobble(0.2); }
+  }
+  lvlGlow = Math.max(0, lvlGlow - dt);
+  jLvl.highlight = juice ? Math.min(1, lvlGlow) : 0;
+  jXpn.highlight = juice && run.pending ? 1 : 0;
   put(el.xp, 'width', (run.pending ? 100 : run.xp / need * 100).toFixed(1) + '%');
   put(el.xpBox, 'className', run.pending ? 'full' : gainT > 0 ? 'gain' : '');
   const key = hero.flasks + '|' + S.padActive + '|' + S.isTouch;
@@ -48,6 +69,7 @@ export function updateHUD(dt) {
     el.flasks.innerHTML = 'Flasks ' + fh + (S.isTouch && !S.padActive ? '' : ' <span style="color:#8a7a60;letter-spacing:0">[' + btnLabel('drink') + ']</span>');
   }
   put(el.wlvl, 'text', 'Sweep Blade +' + run.wlvl);
+  if (run.wlvl !== lastW) { jWlvl.sync(); if (run.wlvl > lastW && juice) jWlvl.pop().shove(); lastW = run.wlvl; }
   put(el.vig, 'opacity', (Math.max(0, hero.hurt * 2.2) + (hero.hp < 35 && !hero.dead ? 0.25 + Math.sin(S.clock * 6) * 0.1 : 0)).toFixed(2));
 
   const it = nearestInteract();
